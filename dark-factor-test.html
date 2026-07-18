@@ -1,0 +1,256 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>暗黑人格量表 — The Dark Factor of Personality</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root { --bg: #0d0b08; --surface: #15120e; --border: #2a2520; --text: #d4cec4; --text-muted: #6b6358; --accent: #c44b3b; --accent-soft: rgba(196,75,59,0.08); }
+body { font-family: "Georgia", "Times New Roman", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; align-items: center; justify-content: center; line-height: 1.75; -webkit-font-smoothing: antialiased; }
+.app { width: 100%; max-width: 560px; min-height: 100vh; padding: 48px 24px; display: flex; flex-direction: column; justify-content: center; }
+
+.cover { animation: fadeUp 0.7s ease; }
+.cover-mark { width: 36px; height: 1px; background: var(--accent); margin: 0 auto 28px; }
+.cover h1 { font-size: 26px; font-weight: 400; letter-spacing: 0.3px; margin-bottom: 6px; text-align: center; }
+.cover .subtitle { font-size: 12px; color: var(--text-muted); letter-spacing: 3px; margin-bottom: 24px; text-align: center; }
+.cover .intro { font-size: 14px; color: var(--text-muted); line-height: 2; max-width: 380px; margin: 0 auto 32px; }
+.cover .intro b { color: var(--text); font-weight: 400; }
+.btn { display: inline-block; padding: 12px 36px; font-size: 14px; font-weight: 400; letter-spacing: 1px; border: 1px solid var(--text); background: var(--text); color: var(--bg); border-radius: 2px; cursor: pointer; transition: all 0.25s; text-align: center; user-select: none; font-family: inherit; }
+.btn:hover { background: transparent; color: var(--text); }
+.btn-outline { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
+.btn-outline:hover { border-color: var(--text); color: var(--text); }
+.btn-sm { padding: 8px 18px; font-size: 12px; }
+
+.test-page { display: none; animation: fadeUp 0.4s ease; }
+.progress-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.progress-num { font-size: 11px; color: var(--text-muted); letter-spacing: 2px; }
+.progress-cat { font-size: 10px; color: var(--accent); letter-spacing: 2px; }
+.progress-bar { height: 1px; background: var(--border); margin-bottom: 36px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--accent); transition: width 0.4s ease; }
+.question-text { font-size: 19px; line-height: 1.6; margin-bottom: 32px; }
+.statement-marker { font-size: 11px; color: var(--text-muted); letter-spacing: 2px; margin-bottom: 8px; }
+.scale-wrap { border-top: 1px solid var(--border); }
+.scale-opt { display: flex; align-items: center; padding: 13px 4px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.12s; }
+.scale-opt:hover { background: rgba(255,255,255,0.02); }
+.scale-opt.selected { background: var(--accent-soft); }
+.scale-radio { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid var(--border); margin-right: 14px; flex-shrink: 0; position: relative; transition: all 0.15s; }
+.scale-opt.selected .scale-radio { border-color: var(--accent); }
+.scale-opt.selected .scale-radio::after { content: ''; position: absolute; top: 2px; left: 2px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.scale-opt .scale-label { flex: 1; font-size: 14px; color: var(--text-muted); }
+.scale-opt.selected .scale-label { color: var(--text); }
+
+.result-page { display: none; animation: fadeUp 0.6s ease; }
+.result-hero { text-align: center; padding-bottom: 28px; border-bottom: 1px solid var(--border); margin-bottom: 28px; }
+.result-hero .d-num { font-size: 80px; font-weight: 400; line-height: 1; color: var(--text); }
+.result-hero .d-label { font-size: 11px; color: var(--text-muted); letter-spacing: 3px; margin: 6px 0 12px; }
+.result-hero .d-desc { font-size: 13px; color: var(--text-muted); max-width: 340px; margin: 0 auto; line-height: 1.9; }
+.chart-wrap { width: 100%; max-width: 380px; margin: 0 auto 28px; }
+.facets-section h3 { font-size: 11px; letter-spacing: 2px; color: var(--text); margin-bottom: 16px; }
+.facet-bar-row { display: flex; align-items: center; padding: 6px 0; }
+.facet-bar-row .f-name { width: 72px; font-size: 13px; color: var(--text-muted); flex-shrink: 0; }
+.facet-bar-row .f-track { flex: 1; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; margin: 0 10px; }
+.facet-bar-row .f-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 1.2s ease; }
+.facet-bar-row .f-pct { width: 30px; text-align: right; font-size: 11px; color: var(--text-muted); flex-shrink: 0; }
+.interpretation { border-top: 1px solid var(--border); padding-top: 24px; margin: 28px 0 24px; }
+.interpretation h3 { font-size: 11px; letter-spacing: 2px; color: var(--text); margin-bottom: 12px; }
+.interpretation p { font-size: 13px; line-height: 2; color: var(--text-muted); }
+.share-btns { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+@keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+.toast { position: fixed; bottom: 36px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 10px 22px; border-radius: 2px; font-size: 12px; z-index: 999; animation: fadeUp 0.3s ease, fadeOut 0.3s ease 1.6s forwards; pointer-events: none; font-family: inherit; }
+@media (max-width: 440px) { .app { padding: 32px 16px; } .cover h1 { font-size: 22px; } .question-text { font-size: 17px; } .result-hero .d-num { font-size: 62px; } .facet-bar-row .f-name { width: 60px; font-size: 12px; } }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+<div class="cover" id="cover">
+<div class="cover-mark"></div>
+<h1>暗黑人格量表</h1>
+<div class="subtitle">THE DARK FACTOR OF PERSONALITY</div>
+<p class="intro">生活中每个人都会有不同的行为方式。请阅读以下每一条陈述，并指出你在多大程度上<b>同意或不同意</b>该描述适用于你自己。请诚实作答，答案没有对错之分。</p>
+<div style="text-align:center"><button class="btn" id="btnStart">开始答题</button></div>
+</div>
+
+<div class="test-page" id="testPage">
+<div class="progress-row"><span class="progress-num" id="progressNum">01 / 27</span><span class="progress-cat" id="progressCat"></span></div>
+<div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+<div class="statement-marker">请选择你的同意程度 · 点击即确认</div>
+<div class="question-text" id="qText"></div>
+<div class="scale-wrap" id="scaleWrap"></div>
+</div>
+
+<div class="result-page" id="resultPage">
+<div class="result-hero"><div class="d-num" id="dScore"></div><div class="d-label">D-FACTOR SCORE</div><div class="d-desc" id="dDesc"></div></div>
+<div class="chart-wrap"><canvas id="radarChart"></canvas></div>
+<div class="facets-section"><h3>各维度得分</h3><div id="facetsList"></div></div>
+<div class="interpretation"><h3>解读</h3><p id="interpretation"></p></div>
+<div class="share-btns">
+<button class="btn btn-sm" id="btnShare">复制结果</button>
+<button class="btn btn-outline btn-sm" id="btnRestart">重新测试</button>
+</div>
+</div>
+</div>
+<div class="toast" id="toast" style="display:none"></div>
+
+<script>
+var FACETS = {
+  CAL: "冷酷无情", DEC: "欺骗倾向", NAR: "自恋特权",
+  SAD: "施虐倾向", SPI: "恶意", VEN: "报复心",
+  GRE: "贪婪", EGO: "利己主义", MOR: "道德脱离"
+};
+var FACET_ORDER = ["CAL","DEC","NAR","SAD","SPI","VEN","GRE","EGO","MOR"];
+var QUESTIONS = [
+  { text: "别人的痛苦很少会真正影响到我。", f: "CAL" },
+  { text: "即使身边的人情绪崩溃，我也能保持冷静。", f: "CAL" },
+  { text: "我不太理解为什么要对陌生人产生同情。", f: "CAL" },
+  { text: "有时候撒个小谎能让事情变得更容易。", f: "DEC" },
+  { text: "在谈判中隐藏部分信息是聪明的做法。", f: "DEC" },
+  { text: "我善于让别人相信一些并不完全真实的事情。", f: "DEC" },
+  { text: "我认为自己值得比别人更好的对待。", f: "NAR" },
+  { text: "我不喜欢排队——我觉得应该有优先权。", f: "NAR" },
+  { text: "很多人不理解我；如果他们理解，就会更尊重我。", f: "NAR" },
+  { text: "看到讨厌的人遭遇不幸，我会感到一丝满足。", f: "SAD" },
+  { text: "如果有人活该受罪，我不介意让他不舒服。", f: "SAD" },
+  { text: "在竞争中彻底碾压对手让我很兴奋。", f: "SAD" },
+  { text: "即使对自己也没好处，我也可能去破坏别人的计划。", f: "SPI" },
+  { text: "如果某人曾反对过我，我不介意他在其他事上也失败。", f: "SPI" },
+  { text: "有时候看到某人出丑是值得付出一点代价的。", f: "SPI" },
+  { text: "如果有人对我做了过分的事，我一定要还回去。", f: "VEN" },
+  { text: "我认同「以眼还眼」这个原则。", f: "VEN" },
+  { text: "我不会轻易原谅伤害过我的人。", f: "VEN" },
+  { text: "说实话，我总觉得自己得到的还不够多。", f: "GRE" },
+  { text: "如果有机会获得额外利益，即使不太合规我也会考虑。", f: "GRE" },
+  { text: "在资源有限的情况下，我优先确保自己拿到最大的一份。", f: "GRE" },
+  { text: "做决定时，我首先考虑的是这件事对我有什么好处。", f: "EGO" },
+  { text: "别人的需要不应该妨碍我追求自己的目标。", f: "EGO" },
+  { text: "如果帮助别人要付出很大代价，我通常不会帮。", f: "EGO" },
+  { text: "有时候所谓的对错只是看问题的角度不同。", f: "MOR" },
+  { text: "在特殊情况下，做一些通常被认为不对的事情是可以接受的。", f: "MOR" },
+  { text: "不应该用统一的道德标准来评判每一个人。", f: "MOR" }
+];
+var SCALE = ["完全不同意", "有点不同意", "不确定", "有点同意", "完全同意"];
+
+var currentQ = 0, scores = {}, chartInst = null, chartReady = false;
+FACET_ORDER.forEach(function(k) { scores[k] = 0; });
+
+function loadChart(cb) {
+  if (chartReady) return cb();
+  if (typeof Chart !== 'undefined') { chartReady = true; return cb(); }
+  var s = document.createElement('script');
+  s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js';
+  s.onload = function() { chartReady = true; cb(); };
+  s.onerror = function() { cb(); };
+  document.head.appendChild(s);
+}
+
+function startTest() {
+  currentQ = 0; FACET_ORDER.forEach(function(k) { scores[k] = 0; });
+  document.getElementById('cover').style.display = 'none';
+  document.getElementById('resultPage').style.display = 'none';
+  document.getElementById('testPage').style.display = 'block';
+  renderQ();
+}
+
+function restartTest() {
+  currentQ = 0; FACET_ORDER.forEach(function(k) { scores[k] = 0; });
+  document.getElementById('cover').style.display = 'block';
+  document.getElementById('resultPage').style.display = 'none';
+  if (chartInst) { chartInst.destroy(); chartInst = null; }
+}
+
+function renderQ() {
+  var q = QUESTIONS[currentQ];
+  var pct = Math.round((currentQ / QUESTIONS.length) * 100);
+  document.getElementById('progressNum').textContent = String(currentQ + 1).padStart(2, '0') + ' / ' + QUESTIONS.length;
+  document.getElementById('progressCat').textContent = FACETS[q.f] + '维度';
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('qText').textContent = q.text;
+  var html = '';
+  SCALE.forEach(function(s, i) {
+    html += '<div class="scale-opt" data-idx="' + i + '"><span class="scale-radio"></span><span class="scale-label">' + s + '</span></div>';
+  });
+  var wrap = document.getElementById('scaleWrap');
+  wrap.innerHTML = html;
+  wrap.querySelectorAll('.scale-opt').forEach(function(el) {
+    el.addEventListener('click', function() {
+      var idx = parseInt(el.dataset.idx);
+      // Fixed: only highlight the clicked option (single select), not all preceding
+      wrap.querySelectorAll('.scale-opt').forEach(function(e) { e.classList.remove('selected'); });
+      el.classList.add('selected');
+      scores[q.f] += (idx + 1);
+      setTimeout(function() {
+        if (currentQ < QUESTIONS.length - 1) { currentQ++; renderQ(); }
+        else { showResult(); }
+      }, 200);
+    });
+  });
+}
+
+function showResult() {
+  document.getElementById('testPage').style.display = 'none';
+  document.getElementById('resultPage').style.display = 'block';
+  var pcts = {};
+  FACET_ORDER.forEach(function(k) { pcts[k] = Math.round((scores[k] / 15) * 100); });
+  var d = Math.round(Object.values(pcts).reduce(function(a,b){return a+b;}, 0) / FACET_ORDER.length);
+  document.getElementById('dScore').textContent = d;
+  var descs = [
+    [20, "你的暗黑人格指数处于极低水平。你对他人怀有真诚的善意，道德内化程度高。"],
+    [35, "你的暗黑人格指数偏低。你有良好的共情能力和社交适应力。"],
+    [50, "你的暗黑人格指数处于平均水平。你在多数场合适度展现策略性思维。"],
+    [65, "你的暗黑人格指数略高于平均。某些暗黑维度在你身上有较为明显的体现。"],
+    [80, "你的暗黑人格指数明显偏高。你在多个维度上有突出表现。"],
+    [101, "你的暗黑人格指数处于高位。几乎所有暗黑维度都有显著特征。"]
+  ];
+  for (var i = 0; i < descs.length; i++) { if (d <= descs[i][0]) { document.getElementById('dDesc').textContent = descs[i][1]; break; } }
+  var facetsHtml = '';
+  FACET_ORDER.forEach(function(k) {
+    facetsHtml += '<div class="facet-bar-row"><span class="f-name">' + FACETS[k] + '</span><div class="f-track"><div class="f-fill" style="width:' + pcts[k] + '%"></div></div><span class="f-pct">' + pcts[k] + '</span></div>';
+  });
+  document.getElementById('facetsList').innerHTML = facetsHtml;
+  var sorted = FACET_ORDER.slice().sort(function(a,b) { return pcts[b] - pcts[a]; });
+  var interp = '你最突出的暗黑特质是<strong>' + FACETS[sorted[0]] + '</strong>（' + pcts[sorted[0]] + '分）。';
+  if (pcts[sorted[1]] >= pcts[sorted[0]] - 5 && pcts[sorted[1]] >= 35) {
+    interp += '紧随其后的是<strong>' + FACETS[sorted[1]] + '</strong>（' + pcts[sorted[1]] + '分）。';
+  }
+  var low = sorted[sorted.length - 1];
+  if (pcts[low] <= 30) interp += '<br><br>你最不突出的维度是<strong>' + FACETS[low] + '</strong>（' + pcts[low] + '分）。';
+  interp += '<br><br>暗黑人格（D-factor）是心理学中衡量一系列相互关联的负面人格倾向的核心指标，涵盖利用他人、自我中心和情感冷漠等特质。得分高的人更倾向于将自己的利益置于他人之上。每个人都有不同程度的暗黑特质，关键在于觉察和管理它们。';
+  document.getElementById('interpretation').innerHTML = interp;
+  loadChart(function() { renderRadar(pcts); });
+}
+
+function renderRadar(pcts) {
+  if (typeof Chart === 'undefined') return;
+  if (chartInst) chartInst.destroy();
+  var ctx = document.getElementById('radarChart').getContext('2d');
+  var labels = FACET_ORDER.map(function(k) { return FACETS[k]; });
+  var data = FACET_ORDER.map(function(k) { return pcts[k]; });
+  chartInst = new Chart(ctx, {
+    type: 'radar', data: { labels: labels, datasets: [{ data: data, backgroundColor: 'rgba(196,75,59,0.08)', borderColor: '#c44b3b', borderWidth: 1.2, pointBackgroundColor: '#c44b3b', pointBorderColor: '#c44b3b', pointRadius: 3, pointHoverRadius: 5 }] },
+    options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } }, scales: { r: { beginAtZero: true, max: 100, ticks: { display: false, stepSize: 25 }, grid: { color: '#2a2520' }, angleLines: { color: '#2a2520' }, pointLabels: { color: '#d4cec4', font: { size: 10 } } } } }
+  });
+}
+
+function shareResult() {
+  var d = document.getElementById('dScore').textContent;
+  var text = '我的暗黑人格（D-Factor）指数：' + d + '/100\n测测你的暗黑面有多深 →';
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(function() { toast('已复制，分享给朋友们一起测'); }).catch(function() { toast('复制失败，请手动截图'); });
+  } else { toast('复制失败，请手动截图'); }
+}
+
+function toast(msg) {
+  var el = document.getElementById('toast');
+  el.textContent = msg; el.style.display = 'block'; el.style.animation = 'none';
+  void el.offsetWidth; el.style.animation = 'fadeUp 0.3s ease, fadeOut 0.3s ease 1.8s forwards';
+  setTimeout(function() { el.style.display = 'none'; }, 2100);
+}
+
+document.getElementById('btnStart').addEventListener('click', startTest);
+document.getElementById('btnRestart').addEventListener('click', restartTest);
+document.getElementById('btnShare').addEventListener('click', shareResult);
+</script>
+</body>
+</html>
