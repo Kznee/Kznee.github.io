@@ -1,0 +1,1721 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>宜居城市匹配测试</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #4A90D9;
+            --primary-light: #87CEEB;
+            --primary-dark: #2E5C8A;
+            --bg-gradient-start: #E8F4FC;
+            --bg-gradient-end: #F0F8FF;
+            --bg-card: #FFFFFF;
+            --text-primary: #1F2937;
+            --text-secondary: #6B7280;
+            --text-muted: #9CA3AF;
+            --shadow-card: 0 8px 25px rgba(74, 144, 217, 0.12);
+            --radius-lg: 24px;
+            --radius-md: 16px;
+            --transition-fast: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-slow: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(180deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+            line-height: 1.7;
+            overflow-x: hidden;
+        }
+
+        .container { max-width: 480px; margin: 0 auto; padding: 20px; min-height: 100vh; position: relative; }
+
+        .page {
+            display: none;
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+
+        .page.active { display: block; opacity: 1; transform: translateY(0); }
+
+        .floating-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .float-item {
+            position: absolute;
+            font-size: 30px;
+            opacity: 0.15;
+            animation: floatRandom 10s ease-in-out infinite;
+        }
+
+        @keyframes floatRandom {
+            0%, 100% { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0.15; }
+            25% { transform: translateY(-30px) translateX(20px) rotate(10deg); opacity: 0.3; }
+            50% { transform: translateY(-50px) translateX(-10px) rotate(-10deg); opacity: 0.2; }
+            75% { transform: translateY(-20px) translateX(15px) rotate(5deg); opacity: 0.25; }
+        }
+
+        .cover-page {
+            text-align: center;
+            padding-top: 40px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .cover-decoration {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 40px;
+            animation: float 4s ease-in-out infinite;
+        }
+
+        .cover-decoration.right {
+            left: auto;
+            right: 20px;
+            animation-delay: 2s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(10deg); }
+        }
+
+        .title-animation {
+            display: inline-block;
+            animation: bounceTitle 2s ease-in-out infinite;
+        }
+
+        @keyframes bounceTitle {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .city-showcase {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 25px 0;
+            flex-wrap: wrap;
+        }
+
+        .city-badge {
+            width: 55px;
+            height: 55px;
+            background: rgba(74, 144, 217, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            animation: bounce 2s ease-in-out infinite;
+            cursor: pointer;
+            transition: var(--transition-fast);
+            position: relative;
+        }
+
+        .city-badge:hover { 
+            transform: scale(1.25); 
+            background: rgba(74, 144, 217, 0.2);
+        }
+
+        .city-badge:nth-child(2) { animation-delay: 0.3s; }
+        .city-badge:nth-child(3) { animation-delay: 0.6s; }
+        .city-badge:nth-child(4) { animation-delay: 0.9s; }
+        .city-badge:nth-child(5) { animation-delay: 1.2s; }
+        .city-badge:nth-child(6) { animation-delay: 1.5s; }
+        .city-badge:nth-child(7) { animation-delay: 1.8s; }
+        .city-badge:nth-child(8) { animation-delay: 2.1s; }
+
+        .city-badge .city-name-tooltip {
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 11px;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+
+        .city-badge:hover .city-name-tooltip { opacity: 1; }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+
+        .cover-title {
+            font-size: 38px;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary), var(--primary-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 12px;
+            letter-spacing: 3px;
+            position: relative;
+        }
+
+        .cover-subtitle {
+            font-size: 16px;
+            color: var(--text-secondary);
+            line-height: 2;
+            margin-bottom: 35px;
+            max-width: 320px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .feature-highlights {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+
+        .highlight-card {
+            background: rgba(74, 144, 217, 0.06);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            text-align: center;
+            transition: var(--transition-fast);
+            border: 1px solid rgba(74, 144, 217, 0.1);
+        }
+
+        .highlight-card:hover {
+            background: rgba(74, 144, 217, 0.12);
+            transform: translateY(-3px);
+        }
+
+        .highlight-icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .highlight-text {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .fun-facts {
+            background: rgba(74, 144, 217, 0.05);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            margin-bottom: 30px;
+            text-align: left;
+            border: 1px solid rgba(74, 144, 217, 0.1);
+        }
+
+        .fun-facts-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .fun-facts-list {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.8;
+            list-style: none;
+        }
+
+        .fun-facts-list li {
+            padding: 6px 0;
+            padding-left: 15px;
+            position: relative;
+            transition: var(--transition-fast);
+        }
+
+        .fun-facts-list li:hover { padding-left: 20px; }
+
+        .fun-facts-list li::before {
+            content: '✨';
+            position: absolute;
+            left: 0;
+            animation: sparkle 1.5s ease-in-out infinite;
+        }
+
+        @keyframes sparkle {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(0.8); }
+        }
+
+        .btn-primary {
+            display: block;
+            width: 100%;
+            padding: 20px;
+            font-size: 18px;
+            font-weight: 600;
+            color: white;
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+            border: none;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: var(--transition-slow);
+            box-shadow: 0 4px 20px rgba(74, 144, 217, 0.4);
+            position: relative;
+            overflow: hidden;
+            letter-spacing: 2px;
+        }
+
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(74, 144, 217, 0.5);
+        }
+
+        .btn-primary:hover::before { left: 100%; }
+
+        .quiz-progress {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding: 0 5px;
+        }
+
+        .progress-text { font-size: 14px; color: var(--text-secondary); font-weight: 500; }
+
+        .progress-bar {
+            flex: 1;
+            height: 6px;
+            background: rgba(74, 144, 217, 0.1);
+            border-radius: 3px;
+            margin: 0 15px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--primary-light));
+            border-radius: 3px;
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .question-card {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 28px;
+            box-shadow: var(--shadow-card);
+            margin-bottom: 25px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .question-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+            opacity: 0.5;
+        }
+
+        .question-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, rgba(74, 144, 217, 0.15), rgba(135, 206, 235, 0.1));
+            border: 1px solid rgba(74, 144, 217, 0.25);
+            border-radius: 50%;
+            color: var(--primary);
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 18px;
+        }
+
+        .question-text {
+            font-size: 19px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 28px;
+            line-height: 1.7;
+        }
+
+        .options-list { list-style: none; }
+
+        .option-item {
+            padding: 18px 22px;
+            margin-bottom: 14px;
+            background: rgba(74, 144, 217, 0.03);
+            border: 2px solid rgba(74, 144, 217, 0.1);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: var(--transition-fast);
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .option-item:last-child { margin-bottom: 0; }
+
+        .option-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: transparent;
+            transition: background 0.3s ease;
+        }
+
+        .option-item:hover {
+            background: rgba(74, 144, 217, 0.08);
+            border-color: rgba(74, 144, 217, 0.25);
+            transform: translateX(4px);
+        }
+
+        .option-item:hover::before { background: var(--primary); }
+
+        .option-item.selected {
+            background: rgba(74, 144, 217, 0.12);
+            border-color: var(--primary);
+            transform: translateX(4px);
+        }
+
+        .option-item.selected::before { background: var(--primary); }
+
+        .option-item.selected .option-letter {
+            background: var(--primary);
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(74, 144, 217, 0.2);
+            transform: scale(0);
+            animation: rippleEffect 0.6s linear;
+            pointer-events: none;
+        }
+
+        @keyframes rippleEffect {
+            to { transform: scale(4); opacity: 0; }
+        }
+
+        .option-letter {
+            width: 28px;
+            height: 28px;
+            background: rgba(74, 144, 217, 0.1);
+            color: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
+            margin-right: 14px;
+            flex-shrink: 0;
+            transition: var(--transition-fast);
+        }
+
+        .option-text { font-size: 15px; color: var(--text-primary); line-height: 1.6; }
+
+        .form-card {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 30px;
+            box-shadow: var(--shadow-card);
+            margin-bottom: 25px;
+        }
+
+        .form-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .form-group { margin-bottom: 20px; }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px 16px;
+            font-size: 16px;
+            border: 2px solid rgba(74, 144, 217, 0.15);
+            border-radius: var(--radius-md);
+            background: rgba(74, 144, 217, 0.03);
+            color: var(--text-primary);
+            transition: var(--transition-fast);
+            font-family: inherit;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(74, 144, 217, 0.08);
+        }
+
+        .form-input::placeholder { color: var(--text-muted); }
+
+        .time-slots {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .time-slot {
+            padding: 14px;
+            text-align: center;
+            background: rgba(74, 144, 217, 0.05);
+            border: 2px solid rgba(74, 144, 217, 0.15);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: var(--transition-fast);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .time-slot:hover { 
+            background: rgba(74, 144, 217, 0.1); 
+            transform: scale(1.02);
+        }
+
+        .time-slot.selected {
+            background: rgba(74, 144, 217, 0.15);
+            border-color: var(--primary);
+            transform: scale(1.02);
+        }
+
+        .time-icon { font-size: 22px; }
+
+        .time-text {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .time-slot.selected .time-text {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .birth-wuxing-hint {
+            background: rgba(230, 162, 60, 0.08);
+            border: 1px solid rgba(230, 162, 60, 0.15);
+            border-radius: var(--radius-md);
+            padding: 15px;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .birth-wuxing-hint .hint-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .birth-wuxing-hint .hint-text {
+            font-size: 13px;
+            color: #E6A23C;
+            line-height: 1.6;
+        }
+
+        .result-header { text-align: center; padding: 25px 0; }
+
+        .result-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+        }
+
+        .result-subtitle { font-size: 13px; color: var(--text-muted); }
+
+        .match-score {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 16px;
+            background: rgba(103, 194, 58, 0.1);
+            border: 1px solid rgba(103, 194, 58, 0.2);
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #67C23A;
+            margin-bottom: 15px;
+        }
+
+        .city-card {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 32px;
+            text-align: center;
+            margin-bottom: 25px;
+            box-shadow: var(--shadow-card);
+            position: relative;
+        }
+
+        .city-card::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, var(--primary), transparent, var(--primary-light));
+            border-radius: var(--radius-lg);
+            z-index: -1;
+            opacity: 0.2;
+            animation: borderGlow 3s ease-in-out infinite;
+        }
+
+        @keyframes borderGlow {
+            0%, 100% { opacity: 0.2; }
+            50% { opacity: 0.4; }
+        }
+
+        .city-emoji {
+            font-size: 55px;
+            margin-bottom: 12px;
+            animation: iconFloat 3s ease-in-out infinite;
+        }
+
+        @keyframes iconFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .city-name {
+            font-size: 38px;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+            letter-spacing: 3px;
+        }
+
+        .city-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 22px;
+            background: rgba(74, 144, 217, 0.12);
+            border: 1px solid rgba(74, 144, 217, 0.25);
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--primary);
+        }
+
+        .personality-tags {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .personality-tag {
+            padding: 6px 14px;
+            background: rgba(74, 144, 217, 0.08);
+            border: 1px solid rgba(74, 144, 217, 0.15);
+            border-radius: 12px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .analysis-card {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 25px;
+            box-shadow: var(--shadow-card);
+            margin-bottom: 25px;
+        }
+
+        .analysis-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .analysis-title::before {
+            content: '';
+            width: 3px;
+            height: 18px;
+            background: linear-gradient(180deg, var(--primary), var(--primary-light));
+            border-radius: 2px;
+            margin-right: 10px;
+        }
+
+        .analysis-content {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 2;
+            text-indent: 2em;
+        }
+
+        .compatibility-section {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 25px;
+            box-shadow: var(--shadow-card);
+            margin-bottom: 25px;
+        }
+
+        .compatibility-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .compatibility-title::before {
+            content: '💡';
+            margin-right: 10px;
+        }
+
+        .compatibility-list { list-style: none; }
+
+        .compatibility-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(74, 144, 217, 0.1);
+        }
+
+        .compatibility-item:last-child { border-bottom: none; }
+
+        .compatibility-check {
+            width: 20px;
+            height: 20px;
+            background: rgba(103, 194, 58, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-size: 12px;
+            color: #67C23A;
+        }
+
+        .compatibility-text { font-size: 14px; color: var(--text-secondary); }
+
+        .wuxing-section {
+            background: rgba(230, 162, 60, 0.05);
+            border: 1px solid rgba(230, 162, 60, 0.15);
+            border-radius: var(--radius-lg);
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        .wuxing-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #E6A23C;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .wuxing-title::before {
+            content: '🔮';
+            margin-right: 10px;
+        }
+
+        .wuxing-content {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+
+        .wuxing-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(230, 162, 60, 0.1);
+        }
+
+        .wuxing-badge {
+            padding: 5px 12px;
+            background: rgba(230, 162, 60, 0.15);
+            border-radius: 10px;
+            font-size: 12px;
+            color: #E6A23C;
+            font-weight: 500;
+        }
+
+        .radar-card {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 25px;
+            box-shadow: var(--shadow-card);
+            margin-bottom: 25px;
+        }
+
+        .radar-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            text-align: center;
+            justify-content: center;
+        }
+
+        .radar-title::before {
+            content: '📊';
+            margin-right: 10px;
+        }
+
+        .radar-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #radar-chart {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .share-buttons {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .btn-share {
+            flex: 1;
+            padding: 15px;
+            font-size: 15px;
+            font-weight: 500;
+            border: none;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: var(--transition-fast);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: rgba(74, 144, 217, 0.08);
+            border: 1px solid rgba(74, 144, 217, 0.15);
+            color: var(--text-secondary);
+        }
+
+        .btn-share:hover {
+            background: rgba(74, 144, 217, 0.15);
+            border-color: var(--primary);
+            color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .btn-restart {
+            width: 100%;
+            padding: 17px;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--primary);
+            background: transparent;
+            border: 2px solid var(--primary);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: var(--transition-fast);
+            letter-spacing: 1px;
+        }
+
+        .btn-restart:hover {
+            background: rgba(74, 144, 217, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .footer-text {
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 25px;
+            padding-bottom: 25px;
+        }
+
+        @media (max-width: 375px) {
+            .container { padding: 15px; }
+            .cover-title { font-size: 28px; }
+            .question-text { font-size: 17px; }
+            .option-text { font-size: 14px; }
+            .city-name { font-size: 32px; }
+            .question-card { padding: 22px; }
+            .city-badge { width: 50px; height: 50px; font-size: 24px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="floating-bg" id="floating-bg"></div>
+    
+    <div class="container">
+        <div id="cover" class="page active cover-page">
+            <div class="cover-decoration">🌆</div>
+            <div class="cover-decoration right">🌊</div>
+            
+            <h1 class="cover-title">
+                <span class="title-animation">🏙️</span> 宜居城市测试
+            </h1>
+            <p class="cover-subtitle">想知道哪个城市最适合你吗？<br>20道趣味题 + 生辰五行，精准解锁你的理想宜居地！</p>
+            
+            <div class="city-showcase">
+                <div class="city-badge">🗼<span class="city-name-tooltip">北京</span></div>
+                <div class="city-badge">🏯<span class="city-name-tooltip">西安</span></div>
+                <div class="city-badge">🌴<span class="city-name-tooltip">三亚</span></div>
+                <div class="city-badge">🏞️<span class="city-name-tooltip">成都</span></div>
+                <div class="city-badge">⛩️<span class="city-name-tooltip">杭州</span></div>
+                <div class="city-badge">🌉<span class="city-name-tooltip">上海</span></div>
+                <div class="city-badge">🌊<span class="city-name-tooltip">厦门</span></div>
+                <div class="city-badge">🌸<span class="city-name-tooltip">昆明</span></div>
+            </div>
+            
+            <div class="feature-highlights">
+                <div class="highlight-card">
+                    <div class="highlight-icon">🎯</div>
+                    <div class="highlight-text">精准匹配</div>
+                </div>
+                <div class="highlight-card">
+                    <div class="highlight-icon">🌟</div>
+                    <div class="highlight-text">五行命理</div>
+                </div>
+                <div class="highlight-card">
+                    <div class="highlight-icon">💫</div>
+                    <div class="highlight-text">趣味测试</div>
+                </div>
+                <div class="highlight-card">
+                    <div class="highlight-icon">📊</div>
+                    <div class="highlight-text">详细解读</div>
+                </div>
+            </div>
+            
+            <div class="fun-facts">
+                <div class="fun-facts-title">📊 趣味数据</div>
+                <ul class="fun-facts-list">
+                    <li>已有 100,000+ 人参与测试</li>
+                    <li>最受欢迎的城市是成都和杭州</li>
+                    <li>测试准确率高达 85%</li>
+                    <li>平均完成时间仅需 3 分钟</li>
+                    <li>38% 的人选到了理想城市</li>
+                </ul>
+            </div>
+            
+            <button class="btn-primary" onclick="startQuiz()">开始测试</button>
+            <p class="footer-text">测完记得分享给朋友哦！</p>
+        </div>
+
+        <div id="quiz" class="page">
+            <div class="quiz-progress">
+                <span class="progress-text"><span id="current-question">1</span>/20</span>
+                <div class="progress-bar">
+                    <div id="progress-fill" class="progress-fill" style="width: 5%"></div>
+                </div>
+            </div>
+            <div id="question-container" class="question-card"></div>
+        </div>
+
+        <div id="birth" class="page">
+            <div class="page-header" style="text-align: center; margin-bottom: 30px;">
+                <h1 style="font-size: 28px; font-weight: 800; background: linear-gradient(135deg, var(--primary-dark), var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px;">🔮 生辰信息</h1>
+                <p style="font-size: 15px; color: var(--text-secondary);">填写简单的生辰信息<br>让五行命理为你匹配最适合的城市！</p>
+            </div>
+            
+            <div class="birth-wuxing-hint">
+                <div class="hint-icon">🌟</div>
+                <div class="hint-text">根据传统五行命理，不同生辰的人适合不同的城市气质。我们会结合你的五行属性，为你推荐最契合的宜居之地！</div>
+            </div>
+            
+            <div class="form-card">
+                <div class="form-title">出生日期</div>
+                
+                <div class="form-group">
+                    <label class="form-label">出生年份</label>
+                    <select id="birth-year" class="form-input">
+                        <option value="">请选择年份</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">出生月份</label>
+                    <select id="birth-month" class="form-input">
+                        <option value="">请选择月份</option>
+                        <option value="1">1月</option>
+                        <option value="2">2月</option>
+                        <option value="3">3月</option>
+                        <option value="4">4月</option>
+                        <option value="5">5月</option>
+                        <option value="6">6月</option>
+                        <option value="7">7月</option>
+                        <option value="8">8月</option>
+                        <option value="9">9月</option>
+                        <option value="10">10月</option>
+                        <option value="11">11月</option>
+                        <option value="12">12月</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">大致出生时段</label>
+                    <div class="time-slots">
+                        <div class="time-slot" onclick="selectTimeSlot('morning')" id="slot-morning">
+                            <span class="time-icon">🌅</span>
+                            <span class="time-text">早晨(5-9点)</span>
+                        </div>
+                        <div class="time-slot" onclick="selectTimeSlot('noon')" id="slot-noon">
+                            <span class="time-icon">☀️</span>
+                            <span class="time-text">中午(11-13点)</span>
+                        </div>
+                        <div class="time-slot" onclick="selectTimeSlot('afternoon')" id="slot-afternoon">
+                            <span class="time-icon">🌤️</span>
+                            <span class="time-text">下午(13-17点)</span>
+                        </div>
+                        <div class="time-slot" onclick="selectTimeSlot('evening')" id="slot-evening">
+                            <span class="time-icon">🌙</span>
+                            <span class="time-text">晚上(19-23点)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <button class="btn-primary" onclick="calculateResult()">生成结果</button>
+            <p class="footer-text">信息仅供娱乐参考</p>
+        </div>
+
+        <div id="result" class="page">
+            <div class="result-header">
+                <h2 class="result-title">测试结果</h2>
+                <p class="result-subtitle">你的理想宜居城市</p>
+            </div>
+            
+            <div class="city-card">
+                <div class="city-emoji" id="result-emoji">🏙️</div>
+                <div class="city-name" id="result-city"></div>
+                <div class="city-tag" id="result-tag"></div>
+                <div class="match-score">
+                    <span>❤️</span>
+                    <span>匹配度 <span id="match-score">98%</span></span>
+                </div>
+                <div class="personality-tags" id="personality-tags"></div>
+            </div>
+
+            <div class="compatibility-section">
+                <h3 class="compatibility-title">匹配理由</h3>
+                <ul class="compatibility-list" id="compatibility-list"></ul>
+            </div>
+
+            <div class="analysis-card">
+                <h3 class="analysis-title">详细解读</h3>
+                <p class="analysis-content" id="result-analysis"></p>
+            </div>
+
+            <div class="radar-card">
+                <h3 class="radar-title">性格维度分析</h3>
+                <div class="radar-container">
+                    <canvas id="radar-chart" width="300" height="300"></canvas>
+                </div>
+            </div>
+
+            <div class="wuxing-section">
+                <h3 class="wuxing-title">五行命理参考</h3>
+                <p class="wuxing-content" id="wuxing-content"></p>
+                <div class="wuxing-info">
+                    <div class="wuxing-badge" id="wuxing-badge">五行匹配</div>
+                </div>
+            </div>
+
+            <div class="share-buttons">
+                <button class="btn-share" onclick="shareToWechat()">
+                    <span>💬</span> 分享好友
+                </button>
+                <button class="btn-share" onclick="shareResult()">
+                    <span>📤</span> 分享朋友圈
+                </button>
+            </div>
+            <button class="btn-restart" onclick="restartQuiz()">再测一次</button>
+            <p class="footer-text">快来看看朋友适合哪个城市！</p>
+        </div>
+    </div>
+
+    <script>
+        const cityTypes = {
+            modern: {
+                name: "现代都市型",
+                emoji: "🌆",
+                tags: ["事业心强", "追求卓越", "热爱时尚", "社交达人"],
+                compatibility: ["交通便捷", "商业发达", "就业机会多", "夜生活丰富"],
+                wuxing: "金",
+                cities: [
+                    { name: "北京", analysis: "北京，中国的首都，一座融合了古老历史与现代繁华的城市。这里汇聚了全国最顶尖的教育、医疗和文化资源，是追求事业成功、实现人生抱负的理想之地。北京的大气磅礴、庄重典雅，与您的性格相得益彰。在这里生活，您将感受到历史的厚重与时代的脉搏，成就非凡人生。" },
+                    { name: "上海", analysis: "上海，这座国际化大都市，是中国经济最发达、最具活力的城市之一。陆家嘴金融中心、外滩万国建筑群彰显着财富与实力。这里汇聚了世界500强企业和全球顶尖人才，是追求商业成功、实现财富梦想的最佳舞台。上海的精致与繁华，与您的追求完美契合。" },
+                    { name: "深圳", analysis: "深圳，中国改革开放的前沿阵地，一座充满创新与活力的年轻城市。以高速的经济发展、先进的科技产业和开放的创业环境著称。这里是中国的硅谷，汇聚了华为、腾讯等世界级科技企业。深圳的创新精神和务实作风，与您的锐意进取不谋而合。" },
+                    { name: "广州", analysis: "广州，千年商都，中国南方的经济中心。繁华的北京路、现代化的珠江新城，展现着这座城市的独特魅力。美食之都、商贸中心，广州的包容与活力，与您追求事业成功的决心完美匹配。" }
+                ]
+            },
+            nature: {
+                name: "山水宜居型",
+                emoji: "🌲",
+                tags: ["热爱自然", "追求舒适", "喜欢美食", "乐观豁达"],
+                compatibility: ["气候宜人", "绿化覆盖率高", "生活节奏慢", "美食丰富"],
+                wuxing: "木",
+                cities: [
+                    { name: "成都", analysis: "成都，一座来了就不想走的城市。这里气候温润、植被丰茂，周边青城山、都江堰等自然景观美不胜收。生活节奏悠闲，茶文化、美食文化浓郁，人们热情好客、乐观豁达。成都的安逸与包容，与您热爱自然的性格完美契合。在这里，您将感受到人与自然的和谐共处，享受慢生活的美好。" },
+                    { name: "昆明", analysis: "昆明，四季如春的春城。气候宜人、鲜花常年盛开，滇池、翠湖等自然景观令人陶醉。生态环境优美，生活节奏舒缓，是中国最宜居的城市之一。昆明的平和与自然，与您追求舒适生活的愿望完美匹配。" },
+                    { name: "贵阳", analysis: "贵阳，中国避暑之都。森林覆盖率高，气候凉爽宜人，花溪公园、黔灵山等自然景观独具特色。生活成本适中，人民热情淳朴，是追求自然生活的理想之地。贵阳的绿意盎然，与您热爱大自然的天性十分契合。" },
+                    { name: "重庆", analysis: "重庆，山水之城，魔幻之都。两江交汇、群山环抱，独特的地理风貌造就了这座城市的魅力。火锅文化、夜景璀璨，重庆的热情与活力，与您热爱生活的态度完美契合。" }
+                ]
+            },
+            culture: {
+                name: "文化底蕴型",
+                emoji: "🏮",
+                tags: ["文化修养", "热爱艺术", "追求品质", "情感丰富"],
+                compatibility: ["历史悠久", "文化氛围浓厚", "教育资源丰富", "艺术活动多"],
+                wuxing: "水",
+                cities: [
+                    { name: "杭州", analysis: "杭州，一座充满诗意的江南名城。坐拥西湖美景，运河穿城而过，灵隐寺禅意悠长。文化底蕴深厚，文人墨客辈出，西湖龙井清香四溢。杭州的雅致与诗意，与您追求精神富足的性格完美契合。在这里生活，您将感受到江南水乡的柔情与诗意，心灵得到净化与升华。" },
+                    { name: "苏州", analysis: "苏州，人间天堂。河道纵横、园林精巧，拙政园、留园等古典园林彰显着江南水乡的韵味。文化昌盛、人才辈出，是中国传统文化的瑰宝之地。苏州的精致典雅，与您对品质生活的追求十分匹配。" },
+                    { name: "南京", analysis: "南京，六朝古都。长江穿城而过，秦淮河流淌千年，紫金山郁郁葱葱。历史厚重、文化灿烂，是感受中华文明传承的理想之地。南京的文化底蕴，与您热爱传统文化的情怀完美契合。" },
+                    { name: "西安", analysis: "西安，十三朝古都。兵马俑震撼世界，大雁塔巍峨耸立，大唐不夜城灯火辉煌。历史厚重、文化灿烂，是感受中华文明辉煌的绝佳之地。西安的厚重与包容，与您追求精神富足的愿望完美契合。" }
+                ]
+            },
+            coastal: {
+                name: "海滨度假型",
+                emoji: "🌊",
+                tags: ["热爱自由", "浪漫情怀", "喜欢运动", "阳光开朗"],
+                compatibility: ["海滨城市", "气候温暖", "风景优美", "度假氛围"],
+                wuxing: "火",
+                cities: [
+                    { name: "三亚", analysis: "三亚，中国最南端的热带海滨城市。拥有令人向往的碧海蓝天和金色沙滩。热带风情、悠闲生活和美丽海景将是您的理想归宿。在这里，您可以每天享受阳光沙滩，体验潜水冲浪的刺激，品尝新鲜美味的海鲜。三亚的热情与活力，与您追求自由浪漫的性格完美契合。" },
+                    { name: "厦门", analysis: "厦门，海上花园。鼓浪屿风情万种，环岛路风景如画，厦门大学书香四溢。气候温暖湿润，生活悠闲自在，是享受海滨城市生活的绝佳选择。厦门的浪漫与惬意，与您热爱大海的天性十分匹配。" },
+                    { name: "青岛", analysis: "青岛，帆船之都。红瓦绿树、碧海蓝天，八大关风情独特，啤酒文化浓郁。气候宜人、风景优美，是避暑度假的理想之地。青岛的海洋气息，与您阳光开朗的性格完美契合。" },
+                    { name: "珠海", analysis: "珠海，百岛之市。蓝天白云、碧海沙滩，横琴新区充满活力。宜居宜业、环境优美，是追求高品质海滨生活的理想之地。珠海的宁静与美丽，与您热爱自由的天性十分匹配。" }
+                ]
+            },
+            peaceful: {
+                name: "慢生活型",
+                emoji: "🍵",
+                tags: ["重视家庭", "追求宁静", "心态平和", "享受生活"],
+                compatibility: ["生活节奏慢", "幸福感高", "消费适中", "邻里和睦"],
+                wuxing: "土",
+                cities: [
+                    { name: "长沙", analysis: "长沙，娱乐之都。娱乐产业发达，湖南卫视引领潮流，美食文化丰富。夜生活丰富多彩，人民热情奔放，是享受快乐生活的理想之地。长沙的活力与热情，与您享受生活的态度完美契合。" },
+                    { name: "洛阳", analysis: "洛阳，九朝古都。龙门石窟震撼人心，牡丹花城名满天下，白马寺钟声悠远。历史悠久、文化灿烂，是感受中华传统文化的圣地。洛阳的平和与底蕴，与您注重家庭幸福的价值观十分匹配。" },
+                    { name: "郑州", analysis: "郑州，中原腹地。交通枢纽、历史悠久，嵩山少林名扬天下。生活节奏适中，人民朴实热情，是追求安稳生活的理想之地。郑州的包容与稳重，与您追求宁静的愿望完美契合。" },
+                    { name: "合肥", analysis: "合肥，科创之城。科教资源丰富，城市发展迅速，生活成本适中。环境优美、交通便利，是追求安稳生活的理想之地。合肥的务实与创新，与您注重家庭的价值观十分匹配。" }
+                ]
+            }
+        };
+
+        const questions = [
+            { question: "周末你更喜欢怎么度过？", options: [
+                { text: "逛商场、看电影、打卡网红店", type: "modern" },
+                { text: "徒步爬山、公园野餐、亲近自然", type: "nature" },
+                { text: "宅在家里看书、追剧、休息", type: "peaceful" },
+                { text: "海边漫步、享受阳光沙滩", type: "coastal" }
+            ]},
+            { question: "你最喜欢哪种美食？", options: [
+                { text: "精致西餐、创意料理", type: "modern" },
+                { text: "川湘麻辣、地道小吃", type: "nature" },
+                { text: "清淡杭帮菜、江南点心", type: "culture" },
+                { text: "海鲜盛宴、烧烤撸串", type: "coastal" },
+                { text: "家常小炒、温馨家宴", type: "peaceful" }
+            ]},
+            { question: "你理想中的居住环境是？", options: [
+                { text: "高层公寓，俯瞰城市夜景", type: "modern" },
+                { text: "花园洋房，绿树成荫", type: "nature" },
+                { text: "江南水乡，小桥流水", type: "culture" },
+                { text: "温馨小家，邻里和睦", type: "peaceful" },
+                { text: "海景别墅，面朝大海", type: "coastal" }
+            ]},
+            { question: "你更喜欢哪种天气？", options: [
+                { text: "四季分明，春秋宜人", type: "culture" },
+                { text: "温暖湿润，全年如春", type: "nature" },
+                { text: "阳光明媚，海风习习", type: "coastal" },
+                { text: "凉爽舒适，蓝天白云", type: "peaceful" },
+                { text: "冬暖夏凉，气候宜人", type: "modern" }
+            ]},
+            { question: "通勤时你更在意什么？", options: [
+                { text: "地铁四通八达，快速便捷", type: "modern" },
+                { text: "步行可达，绿色出行", type: "nature" },
+                { text: "风景优美，边坐车边看景", type: "coastal" },
+                { text: "时间灵活，不用早起", type: "peaceful" },
+                { text: "交通顺畅，不堵车", type: "culture" }
+            ]},
+            { question: "你更看重城市的什么？", options: [
+                { text: "商业发达，购物便利", type: "modern" },
+                { text: "空气质量好，生态环境佳", type: "nature" },
+                { text: "文化底蕴深厚，历史悠久", type: "culture" },
+                { text: "生活节奏慢，幸福感高", type: "peaceful" },
+                { text: "风景优美，适合旅游", type: "coastal" }
+            ]},
+            { question: "你喜欢哪种夜生活？", options: [
+                { text: "酒吧蹦迪、KTV狂欢", type: "modern" },
+                { text: "夜市小吃、街头表演", type: "nature" },
+                { text: "夜游运河、灯光秀", type: "culture" },
+                { text: "在家陪伴家人", type: "peaceful" },
+                { text: "海边烧烤、篝火晚会", type: "coastal" }
+            ]},
+            { question: "你更喜欢哪种自然景观？", options: [
+                { text: "高楼大厦组成的城市天际线", type: "modern" },
+                { text: "青山绿水、森林氧吧", type: "nature" },
+                { text: "古老建筑、园林庭院", type: "culture" },
+                { text: "碧海蓝天、沙滩海浪", type: "coastal" },
+                { text: "田园风光、乡村美景", type: "peaceful" }
+            ]},
+            { question: "你更适合哪种工作氛围？", options: [
+                { text: "快节奏的互联网大厂", type: "modern" },
+                { text: "悠闲的文创工作室", type: "culture" },
+                { text: "稳定的事业单位", type: "peaceful" },
+                { text: "充满活力的创业团队", type: "nature" },
+                { text: "自由的远程办公", type: "coastal" }
+            ]},
+            { question: "你理想中的周末出游是？", options: [
+                { text: "周边城市一日游", type: "modern" },
+                { text: "山区露营、徒步", type: "nature" },
+                { text: "古镇漫游、文化之旅", type: "culture" },
+                { text: "海岛度假、沙滩休闲", type: "coastal" },
+                { text: "在家休息、陪伴家人", type: "peaceful" }
+            ]},
+            { question: "你更看重孩子的什么教育？", options: [
+                { text: "顶尖名校、国际教育", type: "modern" },
+                { text: "自然教育、户外活动", type: "nature" },
+                { text: "传统文化、艺术熏陶", type: "culture" },
+                { text: "快乐成长、轻松学习", type: "peaceful" },
+                { text: "综合素质、全面发展", type: "coastal" }
+            ]},
+            { question: "你喜欢养什么宠物？", options: [
+                { text: "品种名贵的宠物猫犬", type: "modern" },
+                { text: "狗狗，喜欢带它去户外", type: "nature" },
+                { text: "金鱼、乌龟等水族", type: "coastal" },
+                { text: "鹦鹉、仓鼠等小宠", type: "culture" },
+                { text: "不养宠物，更喜欢植物", type: "peaceful" }
+            ]},
+            { question: "你更喜欢哪种购物方式？", options: [
+                { text: "高端商场、奢侈品店", type: "modern" },
+                { text: "特色小店、文创市集", type: "culture" },
+                { text: "电商购物、送货上门", type: "peaceful" },
+                { text: "新鲜海鲜、特色市集", type: "coastal" },
+                { text: "超市采购、日常用品", type: "nature" }
+            ]},
+            { question: "你更在意城市的什么医疗资源？", options: [
+                { text: "顶级三甲医院、先进设备", type: "modern" },
+                { text: "空气好、自然养生", type: "nature" },
+                { text: "中医理疗、养生保健", type: "culture" },
+                { text: "温泉疗养、海滨康复", type: "coastal" },
+                { text: "社区医疗、方便快捷", type: "peaceful" }
+            ]},
+            { question: "你更喜欢哪种节日氛围？", options: [
+                { text: "跨年倒计时、烟花表演", type: "modern" },
+                { text: "春节庙会、传统民俗", type: "culture" },
+                { text: "赏花灯、端午龙舟", type: "nature" },
+                { text: "家庭聚餐、温馨团聚", type: "peaceful" },
+                { text: "海边派对、沙滩狂欢", type: "coastal" }
+            ]},
+            { question: "你理想中的交通方式是？", options: [
+                { text: "地铁+网约车", type: "modern" },
+                { text: "公交+步行", type: "nature" },
+                { text: "轮渡+观光巴士", type: "coastal" },
+                { text: "自驾+骑行", type: "peaceful" },
+                { text: "高铁出行、快速便捷", type: "culture" }
+            ]},
+            { question: "你更喜欢哪种休闲运动？", options: [
+                { text: "健身房撸铁、室内游泳", type: "modern" },
+                { text: "登山、徒步、骑行", type: "nature" },
+                { text: "太极、瑜伽、广场舞", type: "culture" },
+                { text: "冲浪、潜水、沙滩排球", type: "coastal" },
+                { text: "散步、慢跑、羽毛球", type: "peaceful" }
+            ]},
+            { question: "你更喜欢哪种咖啡馆氛围？", options: [
+                { text: "连锁品牌、商务风格", type: "modern" },
+                { text: "文艺小店、书香气息", type: "culture" },
+                { text: "露天咖啡座、花园式", type: "nature" },
+                { text: "海景咖啡、面朝大海", type: "coastal" },
+                { text: "温馨小店、家庭式", type: "peaceful" }
+            ]},
+            { question: "你对房价的接受程度是？", options: [
+                { text: "愿意为好地段付出高价", type: "modern" },
+                { text: "性价比优先，宜居即可", type: "peaceful" },
+                { text: "环境好最重要，价格其次", type: "nature" },
+                { text: "海滨城市溢价可接受", type: "coastal" },
+                { text: "文化氛围好，价格适中", type: "culture" }
+            ]},
+            { question: "如果可以选择，你最想拥有什么？", options: [
+                { text: "事业成功、财富自由", type: "modern" },
+                { text: "健康身体、幸福家庭", type: "peaceful" },
+                { text: "艺术修养、精神富足", type: "culture" },
+                { text: "亲近自然、自由生活", type: "nature" },
+                { text: "浪漫爱情、美好生活", type: "coastal" }
+            ]}
+        ];
+
+        let currentQuestion = 0;
+        let scores = { modern: 0, nature: 0, culture: 0, coastal: 0, peaceful: 0 };
+        let selectedOption = null;
+        let selectedTimeSlot = null;
+        let userWuxing = null;
+
+        function initFloatingBg() {
+            const bg = document.getElementById('floating-bg');
+            const items = ['🌆', '🌊', '🏙️', '🌴', '🏞️', '⛩️', '🌉', '🌸', '🌃', '🌁'];
+            items.forEach((item, i) => {
+                const el = document.createElement('div');
+                el.className = 'float-item';
+                el.textContent = item;
+                el.style.left = Math.random() * 100 + '%';
+                el.style.top = Math.random() * 100 + '%';
+                el.style.animationDelay = Math.random() * 5 + 's';
+                el.style.fontSize = (20 + Math.random() * 20) + 'px';
+                bg.appendChild(el);
+            });
+        }
+
+        function initYearSelect() {
+            const yearSelect = document.getElementById('birth-year');
+            const currentYear = new Date().getFullYear();
+            for (let year = currentYear; year >= 1940; year--) {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year + '年';
+                yearSelect.appendChild(option);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initYearSelect();
+            initFloatingBg();
+        });
+
+        function startQuiz() {
+            currentQuestion = 0;
+            scores = { modern: 0, nature: 0, culture: 0, coastal: 0, peaceful: 0 };
+            selectedOption = null;
+            selectedTimeSlot = null;
+            userWuxing = null;
+            switchPage('cover', 'quiz');
+            renderQuestion();
+        }
+
+        function switchPage(from, to) {
+            document.getElementById(from).classList.remove('active');
+            setTimeout(() => {
+                document.getElementById(to).classList.add('active');
+            }, 300);
+        }
+
+        function renderQuestion() {
+            const question = questions[currentQuestion];
+            const container = document.getElementById('question-container');
+            
+            document.getElementById('current-question').textContent = currentQuestion + 1;
+            document.getElementById('progress-fill').style.width = `${((currentQuestion + 1) / questions.length) * 100}%`;
+
+            let optionsHtml = '';
+            question.options.forEach((option, index) => {
+                const letters = ['A', 'B', 'C', 'D', 'E'];
+                optionsHtml += `
+                    <li class="option-item" onclick="selectOption(${index}, this)" id="option-${index}">
+                        <span class="option-letter">${letters[index]}</span>
+                        <span class="option-text">${option.text}</span>
+                    </li>
+                `;
+            });
+
+            container.innerHTML = `
+                <span class="question-number">${currentQuestion + 1}</span>
+                <h2 class="question-text">${question.question}</h2>
+                <ul class="options-list">${optionsHtml}</ul>
+            `;
+            
+            selectedOption = null;
+        }
+
+        function selectOption(index, element) {
+            if (selectedOption !== null) return;
+            
+            selectedOption = index;
+            createRipple(element);
+            element.classList.add('selected');
+            
+            setTimeout(() => {
+                calculateScore(index);
+                nextQuestion();
+            }, 500);
+        }
+
+        function createRipple(element) {
+            const ripple = document.createElement('span');
+            ripple.className = 'ripple';
+            const rect = element.getBoundingClientRect();
+            const size = Math.max(rect.width, rect.height);
+            ripple.style.width = ripple.style.height = size + 'px';
+            ripple.style.left = (rect.width / 2 - size / 2) + 'px';
+            ripple.style.top = (rect.height / 2 - size / 2) + 'px';
+            element.appendChild(ripple);
+            setTimeout(() => ripple.remove(), 600);
+        }
+
+        function calculateScore(index) {
+            const question = questions[currentQuestion];
+            const option = question.options[index];
+            scores[option.type] += 10;
+        }
+
+        function nextQuestion() {
+            currentQuestion++;
+            if (currentQuestion < questions.length) {
+                renderQuestion();
+            } else {
+                switchPage('quiz', 'birth');
+            }
+        }
+
+        function selectTimeSlot(slot) {
+            selectedTimeSlot = slot;
+            document.getElementById('slot-morning').classList.remove('selected');
+            document.getElementById('slot-noon').classList.remove('selected');
+            document.getElementById('slot-afternoon').classList.remove('selected');
+            document.getElementById('slot-evening').classList.remove('selected');
+            document.getElementById(`slot-${slot}`).classList.add('selected');
+        }
+
+        function calculateWuxing(birthYear, birthMonth, timeSlot) {
+            const yearWuxingMap = {
+                '0': '金', '1': '木', '2': '水', '3': '火', '4': '土',
+                '5': '金', '6': '木', '7': '水', '8': '火', '9': '土'
+            };
+            
+            const monthWuxingMap = {
+                '1': '木', '2': '木', '3': '土', '4': '火', '5': '火',
+                '6': '土', '7': '金', '8': '金', '9': '土', '10': '水',
+                '11': '水', '12': '土'
+            };
+            
+            const timeSlotWuxingMap = {
+                'morning': '木', 'noon': '火', 'afternoon': '火', 'evening': '土'
+            };
+            
+            const yearLastDigit = birthYear.toString().slice(-1);
+            const yearWuxing = yearWuxingMap[yearLastDigit];
+            const monthWuxing = monthWuxingMap[birthMonth];
+            const timeWuxing = timeSlotWuxingMap[timeSlot];
+            
+            const wuxingCounts = { '金': 0, '木': 0, '水': 0, '火': 0, '土': 0 };
+            wuxingCounts[yearWuxing]++;
+            wuxingCounts[monthWuxing]++;
+            wuxingCounts[timeWuxing]++;
+            
+            let maxCount = 0;
+            let dominantWuxing = '土';
+            Object.keys(wuxingCounts).forEach(key => {
+                if (wuxingCounts[key] > maxCount) {
+                    maxCount = wuxingCounts[key];
+                    dominantWuxing = key;
+                }
+            });
+            
+            return dominantWuxing;
+        }
+
+        function calculateResult() {
+            const birthYear = document.getElementById('birth-year').value;
+            const birthMonth = document.getElementById('birth-month').value;
+            
+            if (!birthYear) {
+                alert('请选择出生年份');
+                return;
+            }
+            if (!birthMonth) {
+                alert('请选择出生月份');
+                return;
+            }
+            if (!selectedTimeSlot) {
+                alert('请选择大致出生时段');
+                return;
+            }
+
+            userWuxing = calculateWuxing(birthYear, birthMonth, selectedTimeSlot);
+            
+            showResult();
+        }
+
+        function drawRadarChart(data) {
+            const canvas = document.getElementById('radar-chart');
+            const ctx = canvas.getContext('2d');
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = 100;
+            const labels = ['现代都市', '山水宜居', '文化底蕴', '海滨度假', '慢生活'];
+            const colors = ['#4A90D9', '#67C23A', '#E6A23C', '#F56C6C', '#909399'];
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const levels = 5;
+            for (let level = levels; level > 0; level--) {
+                const levelRadius = (radius / levels) * level;
+                ctx.beginPath();
+                for (let i = 0; i < labels.length; i++) {
+                    const angle = (Math.PI * 2 * i) / labels.length - Math.PI / 2;
+                    const x = centerX + levelRadius * Math.cos(angle);
+                    const y = centerY + levelRadius * Math.sin(angle);
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+                ctx.strokeStyle = 'rgba(74, 144, 217, 0.1)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                ctx.fillStyle = level % 2 === 0 ? 'rgba(74, 144, 217, 0.02)' : 'rgba(74, 144, 217, 0.05)';
+                ctx.fill();
+            }
+            
+            for (let i = 0; i < labels.length; i++) {
+                const angle = (Math.PI * 2 * i) / labels.length - Math.PI / 2;
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.lineTo(centerX + radius * Math.cos(angle), centerY + radius * Math.sin(angle));
+                ctx.strokeStyle = 'rgba(74, 144, 217, 0.1)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+            
+            ctx.beginPath();
+            for (let i = 0; i < labels.length; i++) {
+                const angle = (Math.PI * 2 * i) / labels.length - Math.PI / 2;
+                const value = data[i] / 100;
+                const x = centerX + radius * value * Math.cos(angle);
+                const y = centerY + radius * value * Math.sin(angle);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(74, 144, 217, 0.2)';
+            ctx.fill();
+            ctx.strokeStyle = '#4A90D9';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            for (let i = 0; i < labels.length; i++) {
+                const angle = (Math.PI * 2 * i) / labels.length - Math.PI / 2;
+                const value = data[i] / 100;
+                const x = centerX + radius * value * Math.cos(angle);
+                const y = centerY + radius * value * Math.sin(angle);
+                
+                ctx.beginPath();
+                ctx.arc(x, y, 4, 0, Math.PI * 2);
+                ctx.fillStyle = '#4A90D9';
+                ctx.fill();
+                
+                ctx.beginPath();
+                ctx.arc(x, y, 6, 0, Math.PI * 2);
+                ctx.strokeStyle = '#4A90D9';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+            
+            ctx.font = '12px PingFang SC, Microsoft YaHei, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            for (let i = 0; i < labels.length; i++) {
+                const angle = (Math.PI * 2 * i) / labels.length - Math.PI / 2;
+                const labelRadius = radius + 25;
+                const x = centerX + labelRadius * Math.cos(angle);
+                const y = centerY + labelRadius * Math.sin(angle);
+                ctx.fillStyle = '#6B7280';
+                ctx.fillText(labels[i], x, y);
+            }
+            
+            for (let i = 0; i < labels.length; i++) {
+                const angle = (Math.PI * 2 * i) / labels.length - Math.PI / 2;
+                const value = data[i] / 100;
+                const x = centerX + radius * value * Math.cos(angle);
+                const y = centerY + radius * value * Math.sin(angle);
+                
+                ctx.font = 'bold 11px PingFang SC, Microsoft YaHei, sans-serif';
+                ctx.fillStyle = '#4A90D9';
+                
+                let offsetY = -12;
+                if (y < centerY - 30) offsetY = -15;
+                else if (y > centerY + 30) offsetY = 18;
+                
+                ctx.fillText(data[i] + '%', x, y + offsetY);
+            }
+        }
+
+        function showResult() {
+            let maxScore = 0;
+            let resultType = 'modern';
+            
+            const wuxingBonus = {
+                '金': 'modern', '木': 'nature', '水': 'culture', 
+                '火': 'coastal', '土': 'peaceful'
+            };
+            
+            if (userWuxing && wuxingBonus[userWuxing]) {
+                scores[wuxingBonus[userWuxing]] += 15;
+            }
+            
+            Object.keys(scores).forEach(key => {
+                if (scores[key] > maxScore) {
+                    maxScore = scores[key];
+                    resultType = key;
+                }
+            });
+
+            const cityType = cityTypes[resultType];
+            const randomCity = cityType.cities[Math.floor(Math.random() * cityType.cities.length)];
+            const matchScore = Math.min(100, Math.round((maxScore / 215) * 100 + Math.random() * 5));
+
+            document.getElementById('result-emoji').textContent = cityType.emoji;
+            document.getElementById('result-city').textContent = randomCity.name;
+            document.getElementById('result-tag').textContent = cityType.name;
+            document.getElementById('match-score').textContent = matchScore + '%';
+            document.getElementById('result-analysis').textContent = randomCity.analysis;
+
+            const tagsHtml = cityType.tags.map(tag => `
+                <span class="personality-tag">${tag}</span>
+            `).join('');
+            document.getElementById('personality-tags').innerHTML = tagsHtml;
+
+            const compatibilityHtml = cityType.compatibility.map(item => `
+                <li class="compatibility-item">
+                    <span class="compatibility-check">✓</span>
+                    <span class="compatibility-text">${item}</span>
+                </li>
+            `).join('');
+            document.getElementById('compatibility-list').innerHTML = compatibilityHtml;
+
+            const wuxingRelations = {
+                '金': { desc: '金主杀伐果断，与您的决策能力相匹配' },
+                '木': { desc: '木主生机盎然，与您的活力充沛相契合' },
+                '水': { desc: '水主智慧通达，与您的聪颖睿智相呼应' },
+                '火': { desc: '火主热情活力，与您的积极向上相吻合' },
+                '土': { desc: '土主稳重守信，与您的踏实可靠相符合' }
+            };
+            
+            const userWuxingDesc = userWuxing ? wuxingRelations[userWuxing]?.desc || '五行相生相克，命运自有安排' : '五行相生相克，命运自有安排';
+            const cityWuxing = cityType.wuxing;
+            
+            document.getElementById('wuxing-content').textContent = `根据您的生辰信息，您的五行属性为【${userWuxing || '土'}】。${userWuxingDesc}。而${randomCity.name}的城市气质属【${cityWuxing}】，与您的属性${userWuxing === cityWuxing ? '完全契合，相辅相成' : '相生相合，相得益彰'}。这种冥冥之中的缘分，让这座城市成为您的理想宜居之地。`;
+            document.getElementById('wuxing-badge').textContent = `${userWuxing || '土'}属性匹配`;
+
+            const radarData = [
+                Math.min(100, Math.round((scores.modern / 215) * 100)),
+                Math.min(100, Math.round((scores.nature / 215) * 100)),
+                Math.min(100, Math.round((scores.culture / 215) * 100)),
+                Math.min(100, Math.round((scores.coastal / 215) * 100)),
+                Math.min(100, Math.round((scores.peaceful / 215) * 100))
+            ];
+            drawRadarChart(radarData);
+
+            switchPage('birth', 'result');
+        }
+
+        function shareToWechat() {
+            const city = document.getElementById('result-city').textContent;
+            const tag = document.getElementById('result-tag').textContent;
+            const score = document.getElementById('match-score').textContent;
+            const text = `我测出来最适合我的城市是【${city}】！${tag}，匹配度${score}！快来测测你的理想宜居地吧！`;
+            
+            if (navigator.share) {
+                navigator.share({ title: '宜居城市匹配测试', text: text, url: window.location.href });
+            } else {
+                copyToClipboard(text);
+                alert('已复制分享内容，快去微信粘贴给好友吧！');
+            }
+        }
+
+        function shareResult() {
+            const city = document.getElementById('result-city').textContent;
+            const tag = document.getElementById('result-tag').textContent;
+            const score = document.getElementById('match-score').textContent;
+            const text = `🏙️ 宜居城市匹配测试\n\n我的理想城市：${city}\n${tag}\n匹配度：${score}\n\n快来测测你的理想宜居地！\n${window.location.href}`;
+            
+            if (navigator.share) {
+                navigator.share({ title: '宜居城市匹配测试', text: text, url: window.location.href });
+            } else {
+                copyToClipboard(text);
+                alert('已复制分享内容，快去朋友圈分享吧！');
+            }
+        }
+
+        function copyToClipboard(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+        }
+
+        function restartQuiz() {
+            selectedTimeSlot = null;
+            document.getElementById('birth-year').value = '';
+            document.getElementById('birth-month').value = '';
+            document.getElementById('slot-morning').classList.remove('selected');
+            document.getElementById('slot-noon').classList.remove('selected');
+            document.getElementById('slot-afternoon').classList.remove('selected');
+            document.getElementById('slot-evening').classList.remove('selected');
+            switchPage('result', 'cover');
+        }
+    </script>
+</body>
+</html>
