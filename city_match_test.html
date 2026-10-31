@@ -1,1721 +1,399 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>宜居城市匹配测试</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        :root {
-            --primary: #4A90D9;
-            --primary-light: #87CEEB;
-            --primary-dark: #2E5C8A;
-            --bg-gradient-start: #E8F4FC;
-            --bg-gradient-end: #F0F8FF;
-            --bg-card: #FFFFFF;
-            --text-primary: #1F2937;
-            --text-secondary: #6B7280;
-            --text-muted: #9CA3AF;
-            --shadow-card: 0 8px 25px rgba(74, 144, 217, 0.12);
-            --radius-lg: 24px;
-            --radius-md: 16px;
-            --transition-fast: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            --transition-slow: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        body {
-            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
-            background: linear-gradient(180deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
-            min-height: 100vh;
-            color: var(--text-primary);
-            line-height: 1.7;
-            overflow-x: hidden;
-        }
-
-        .container { max-width: 480px; margin: 0 auto; padding: 20px; min-height: 100vh; position: relative; }
-
-        .page {
-            display: none;
-            opacity: 0;
-            transform: translateY(30px);
-            transition: opacity 0.6s ease, transform 0.6s ease;
-        }
-
-        .page.active { display: block; opacity: 1; transform: translateY(0); }
-
-        .floating-bg {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            overflow: hidden;
-            z-index: 0;
-        }
-
-        .float-item {
-            position: absolute;
-            font-size: 30px;
-            opacity: 0.15;
-            animation: floatRandom 10s ease-in-out infinite;
-        }
-
-        @keyframes floatRandom {
-            0%, 100% { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0.15; }
-            25% { transform: translateY(-30px) translateX(20px) rotate(10deg); opacity: 0.3; }
-            50% { transform: translateY(-50px) translateX(-10px) rotate(-10deg); opacity: 0.2; }
-            75% { transform: translateY(-20px) translateX(15px) rotate(5deg); opacity: 0.25; }
-        }
-
-        .cover-page {
-            text-align: center;
-            padding-top: 40px;
-            position: relative;
-            z-index: 1;
-        }
-
-        .cover-decoration {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            font-size: 40px;
-            animation: float 4s ease-in-out infinite;
-        }
-
-        .cover-decoration.right {
-            left: auto;
-            right: 20px;
-            animation-delay: 2s;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0) rotate(0deg); }
-            50% { transform: translateY(-20px) rotate(10deg); }
-        }
-
-        .title-animation {
-            display: inline-block;
-            animation: bounceTitle 2s ease-in-out infinite;
-        }
-
-        @keyframes bounceTitle {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-
-        .city-showcase {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin: 25px 0;
-            flex-wrap: wrap;
-        }
-
-        .city-badge {
-            width: 55px;
-            height: 55px;
-            background: rgba(74, 144, 217, 0.1);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-            animation: bounce 2s ease-in-out infinite;
-            cursor: pointer;
-            transition: var(--transition-fast);
-            position: relative;
-        }
-
-        .city-badge:hover { 
-            transform: scale(1.25); 
-            background: rgba(74, 144, 217, 0.2);
-        }
-
-        .city-badge:nth-child(2) { animation-delay: 0.3s; }
-        .city-badge:nth-child(3) { animation-delay: 0.6s; }
-        .city-badge:nth-child(4) { animation-delay: 0.9s; }
-        .city-badge:nth-child(5) { animation-delay: 1.2s; }
-        .city-badge:nth-child(6) { animation-delay: 1.5s; }
-        .city-badge:nth-child(7) { animation-delay: 1.8s; }
-        .city-badge:nth-child(8) { animation-delay: 2.1s; }
-
-        .city-badge .city-name-tooltip {
-            position: absolute;
-            bottom: -30px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0,0,0,0.7);
-            color: white;
-            padding: 4px 10px;
-            border-radius: 8px;
-            font-size: 11px;
-            white-space: nowrap;
-            opacity: 0;
-            transition: opacity 0.3s;
-            pointer-events: none;
-        }
-
-        .city-badge:hover .city-name-tooltip { opacity: 1; }
-
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-15px); }
-        }
-
-        .cover-title {
-            font-size: 38px;
-            font-weight: 800;
-            background: linear-gradient(135deg, var(--primary-dark), var(--primary), var(--primary-light));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 12px;
-            letter-spacing: 3px;
-            position: relative;
-        }
-
-        .cover-subtitle {
-            font-size: 16px;
-            color: var(--text-secondary);
-            line-height: 2;
-            margin-bottom: 35px;
-            max-width: 320px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        .feature-highlights {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-            margin-bottom: 25px;
-        }
-
-        .highlight-card {
-            background: rgba(74, 144, 217, 0.06);
-            border-radius: var(--radius-md);
-            padding: 16px;
-            text-align: center;
-            transition: var(--transition-fast);
-            border: 1px solid rgba(74, 144, 217, 0.1);
-        }
-
-        .highlight-card:hover {
-            background: rgba(74, 144, 217, 0.12);
-            transform: translateY(-3px);
-        }
-
-        .highlight-icon {
-            font-size: 28px;
-            margin-bottom: 8px;
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-        }
-
-        .highlight-text {
-            font-size: 13px;
-            color: var(--text-secondary);
-            font-weight: 500;
-        }
-
-        .fun-facts {
-            background: rgba(74, 144, 217, 0.05);
-            border-radius: var(--radius-lg);
-            padding: 20px;
-            margin-bottom: 30px;
-            text-align: left;
-            border: 1px solid rgba(74, 144, 217, 0.1);
-        }
-
-        .fun-facts-title {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--primary);
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .fun-facts-list {
-            font-size: 13px;
-            color: var(--text-secondary);
-            line-height: 1.8;
-            list-style: none;
-        }
-
-        .fun-facts-list li {
-            padding: 6px 0;
-            padding-left: 15px;
-            position: relative;
-            transition: var(--transition-fast);
-        }
-
-        .fun-facts-list li:hover { padding-left: 20px; }
-
-        .fun-facts-list li::before {
-            content: '✨';
-            position: absolute;
-            left: 0;
-            animation: sparkle 1.5s ease-in-out infinite;
-        }
-
-        @keyframes sparkle {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.6; transform: scale(0.8); }
-        }
-
-        .btn-primary {
-            display: block;
-            width: 100%;
-            padding: 20px;
-            font-size: 18px;
-            font-weight: 600;
-            color: white;
-            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
-            border: none;
-            border-radius: var(--radius-md);
-            cursor: pointer;
-            transition: var(--transition-slow);
-            box-shadow: 0 4px 20px rgba(74, 144, 217, 0.4);
-            position: relative;
-            overflow: hidden;
-            letter-spacing: 2px;
-        }
-
-        .btn-primary::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transition: left 0.6s ease;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 30px rgba(74, 144, 217, 0.5);
-        }
-
-        .btn-primary:hover::before { left: 100%; }
-
-        .quiz-progress {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 25px;
-            padding: 0 5px;
-        }
-
-        .progress-text { font-size: 14px; color: var(--text-secondary); font-weight: 500; }
-
-        .progress-bar {
-            flex: 1;
-            height: 6px;
-            background: rgba(74, 144, 217, 0.1);
-            border-radius: 3px;
-            margin: 0 15px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--primary), var(--primary-light));
-            border-radius: 3px;
-            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .question-card {
-            background: var(--bg-card);
-            border-radius: var(--radius-lg);
-            padding: 28px;
-            box-shadow: var(--shadow-card);
-            margin-bottom: 25px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .question-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, transparent, var(--primary), transparent);
-            opacity: 0.5;
-        }
-
-        .question-number {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 36px;
-            height: 36px;
-            background: linear-gradient(135deg, rgba(74, 144, 217, 0.15), rgba(135, 206, 235, 0.1));
-            border: 1px solid rgba(74, 144, 217, 0.25);
-            border-radius: 50%;
-            color: var(--primary);
-            font-size: 14px;
-            font-weight: 700;
-            margin-bottom: 18px;
-        }
-
-        .question-text {
-            font-size: 19px;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 28px;
-            line-height: 1.7;
-        }
-
-        .options-list { list-style: none; }
-
-        .option-item {
-            padding: 18px 22px;
-            margin-bottom: 14px;
-            background: rgba(74, 144, 217, 0.03);
-            border: 2px solid rgba(74, 144, 217, 0.1);
-            border-radius: var(--radius-md);
-            cursor: pointer;
-            transition: var(--transition-fast);
-            display: flex;
-            align-items: center;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .option-item:last-child { margin-bottom: 0; }
-
-        .option-item::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 4px;
-            height: 100%;
-            background: transparent;
-            transition: background 0.3s ease;
-        }
-
-        .option-item:hover {
-            background: rgba(74, 144, 217, 0.08);
-            border-color: rgba(74, 144, 217, 0.25);
-            transform: translateX(4px);
-        }
-
-        .option-item:hover::before { background: var(--primary); }
-
-        .option-item.selected {
-            background: rgba(74, 144, 217, 0.12);
-            border-color: var(--primary);
-            transform: translateX(4px);
-        }
-
-        .option-item.selected::before { background: var(--primary); }
-
-        .option-item.selected .option-letter {
-            background: var(--primary);
-            color: white;
-            transform: scale(1.1);
-        }
-
-        .ripple {
-            position: absolute;
-            border-radius: 50%;
-            background: rgba(74, 144, 217, 0.2);
-            transform: scale(0);
-            animation: rippleEffect 0.6s linear;
-            pointer-events: none;
-        }
-
-        @keyframes rippleEffect {
-            to { transform: scale(4); opacity: 0; }
-        }
-
-        .option-letter {
-            width: 28px;
-            height: 28px;
-            background: rgba(74, 144, 217, 0.1);
-            color: var(--primary);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 13px;
-            font-weight: 700;
-            margin-right: 14px;
-            flex-shrink: 0;
-            transition: var(--transition-fast);
-        }
-
-        .option-text { font-size: 15px; color: var(--text-primary); line-height: 1.6; }
-
-        .form-card {
-            background: var(--bg-card);
-            border-radius: var(--radius-lg);
-            padding: 30px;
-            box-shadow: var(--shadow-card);
-            margin-bottom: 25px;
-        }
-
-        .form-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 25px;
-            text-align: center;
-        }
-
-        .form-group { margin-bottom: 20px; }
-
-        .form-label {
-            display: block;
-            font-size: 14px;
-            color: var(--text-secondary);
-            margin-bottom: 8px;
-            font-weight: 500;
-        }
-
-        .form-input {
-            width: 100%;
-            padding: 14px 16px;
-            font-size: 16px;
-            border: 2px solid rgba(74, 144, 217, 0.15);
-            border-radius: var(--radius-md);
-            background: rgba(74, 144, 217, 0.03);
-            color: var(--text-primary);
-            transition: var(--transition-fast);
-            font-family: inherit;
-        }
-
-        .form-input:focus {
-            outline: none;
-            border-color: var(--primary);
-            background: rgba(74, 144, 217, 0.08);
-        }
-
-        .form-input::placeholder { color: var(--text-muted); }
-
-        .time-slots {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-        }
-
-        .time-slot {
-            padding: 14px;
-            text-align: center;
-            background: rgba(74, 144, 217, 0.05);
-            border: 2px solid rgba(74, 144, 217, 0.15);
-            border-radius: var(--radius-md);
-            cursor: pointer;
-            transition: var(--transition-fast);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .time-slot:hover { 
-            background: rgba(74, 144, 217, 0.1); 
-            transform: scale(1.02);
-        }
-
-        .time-slot.selected {
-            background: rgba(74, 144, 217, 0.15);
-            border-color: var(--primary);
-            transform: scale(1.02);
-        }
-
-        .time-icon { font-size: 22px; }
-
-        .time-text {
-            font-size: 14px;
-            color: var(--text-secondary);
-        }
-
-        .time-slot.selected .time-text {
-            color: var(--primary);
-            font-weight: 600;
-        }
-
-        .birth-wuxing-hint {
-            background: rgba(230, 162, 60, 0.08);
-            border: 1px solid rgba(230, 162, 60, 0.15);
-            border-radius: var(--radius-md);
-            padding: 15px;
-            margin-bottom: 25px;
-            text-align: center;
-        }
-
-        .birth-wuxing-hint .hint-icon {
-            font-size: 24px;
-            margin-bottom: 8px;
-        }
-
-        .birth-wuxing-hint .hint-text {
-            font-size: 13px;
-            color: #E6A23C;
-            line-height: 1.6;
-        }
-
-        .result-header { text-align: center; padding: 25px 0; }
-
-        .result-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            margin-bottom: 5px;
-        }
-
-        .result-subtitle { font-size: 13px; color: var(--text-muted); }
-
-        .match-score {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            padding: 6px 16px;
-            background: rgba(103, 194, 58, 0.1);
-            border: 1px solid rgba(103, 194, 58, 0.2);
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: 600;
-            color: #67C23A;
-            margin-bottom: 15px;
-        }
-
-        .city-card {
-            background: var(--bg-card);
-            border-radius: var(--radius-lg);
-            padding: 32px;
-            text-align: center;
-            margin-bottom: 25px;
-            box-shadow: var(--shadow-card);
-            position: relative;
-        }
-
-        .city-card::after {
-            content: '';
-            position: absolute;
-            top: -2px;
-            left: -2px;
-            right: -2px;
-            bottom: -2px;
-            background: linear-gradient(45deg, var(--primary), transparent, var(--primary-light));
-            border-radius: var(--radius-lg);
-            z-index: -1;
-            opacity: 0.2;
-            animation: borderGlow 3s ease-in-out infinite;
-        }
-
-        @keyframes borderGlow {
-            0%, 100% { opacity: 0.2; }
-            50% { opacity: 0.4; }
-        }
-
-        .city-emoji {
-            font-size: 55px;
-            margin-bottom: 12px;
-            animation: iconFloat 3s ease-in-out infinite;
-        }
-
-        @keyframes iconFloat {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-8px); }
-        }
-
-        .city-name {
-            font-size: 38px;
-            font-weight: 800;
-            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 8px;
-            letter-spacing: 3px;
-        }
-
-        .city-tag {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 7px 22px;
-            background: rgba(74, 144, 217, 0.12);
-            border: 1px solid rgba(74, 144, 217, 0.25);
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: 500;
-            color: var(--primary);
-        }
-
-        .personality-tags {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        .personality-tag {
-            padding: 6px 14px;
-            background: rgba(74, 144, 217, 0.08);
-            border: 1px solid rgba(74, 144, 217, 0.15);
-            border-radius: 12px;
-            font-size: 13px;
-            color: var(--text-secondary);
-        }
-
-        .analysis-card {
-            background: var(--bg-card);
-            border-radius: var(--radius-lg);
-            padding: 25px;
-            box-shadow: var(--shadow-card);
-            margin-bottom: 25px;
-        }
-
-        .analysis-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--primary);
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-        }
-
-        .analysis-title::before {
-            content: '';
-            width: 3px;
-            height: 18px;
-            background: linear-gradient(180deg, var(--primary), var(--primary-light));
-            border-radius: 2px;
-            margin-right: 10px;
-        }
-
-        .analysis-content {
-            font-size: 14px;
-            color: var(--text-secondary);
-            line-height: 2;
-            text-indent: 2em;
-        }
-
-        .compatibility-section {
-            background: var(--bg-card);
-            border-radius: var(--radius-lg);
-            padding: 25px;
-            box-shadow: var(--shadow-card);
-            margin-bottom: 25px;
-        }
-
-        .compatibility-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-        }
-
-        .compatibility-title::before {
-            content: '💡';
-            margin-right: 10px;
-        }
-
-        .compatibility-list { list-style: none; }
-
-        .compatibility-item {
-            display: flex;
-            align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid rgba(74, 144, 217, 0.1);
-        }
-
-        .compatibility-item:last-child { border-bottom: none; }
-
-        .compatibility-check {
-            width: 20px;
-            height: 20px;
-            background: rgba(103, 194, 58, 0.1);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 12px;
-            font-size: 12px;
-            color: #67C23A;
-        }
-
-        .compatibility-text { font-size: 14px; color: var(--text-secondary); }
-
-        .wuxing-section {
-            background: rgba(230, 162, 60, 0.05);
-            border: 1px solid rgba(230, 162, 60, 0.15);
-            border-radius: var(--radius-lg);
-            padding: 25px;
-            margin-bottom: 25px;
-        }
-
-        .wuxing-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: #E6A23C;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-        }
-
-        .wuxing-title::before {
-            content: '🔮';
-            margin-right: 10px;
-        }
-
-        .wuxing-content {
-            font-size: 14px;
-            color: var(--text-secondary);
-            line-height: 1.8;
-        }
-
-        .wuxing-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid rgba(230, 162, 60, 0.1);
-        }
-
-        .wuxing-badge {
-            padding: 5px 12px;
-            background: rgba(230, 162, 60, 0.15);
-            border-radius: 10px;
-            font-size: 12px;
-            color: #E6A23C;
-            font-weight: 500;
-        }
-
-        .radar-card {
-            background: var(--bg-card);
-            border-radius: var(--radius-lg);
-            padding: 25px;
-            box-shadow: var(--shadow-card);
-            margin-bottom: 25px;
-        }
-
-        .radar-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--primary);
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            text-align: center;
-            justify-content: center;
-        }
-
-        .radar-title::before {
-            content: '📊';
-            margin-right: 10px;
-        }
-
-        .radar-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        #radar-chart {
-            max-width: 100%;
-            height: auto;
-        }
-
-        .share-buttons {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-
-        .btn-share {
-            flex: 1;
-            padding: 15px;
-            font-size: 15px;
-            font-weight: 500;
-            border: none;
-            border-radius: var(--radius-md);
-            cursor: pointer;
-            transition: var(--transition-fast);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            background: rgba(74, 144, 217, 0.08);
-            border: 1px solid rgba(74, 144, 217, 0.15);
-            color: var(--text-secondary);
-        }
-
-        .btn-share:hover {
-            background: rgba(74, 144, 217, 0.15);
-            border-color: var(--primary);
-            color: var(--primary);
-            transform: translateY(-2px);
-        }
-
-        .btn-restart {
-            width: 100%;
-            padding: 17px;
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--primary);
-            background: transparent;
-            border: 2px solid var(--primary);
-            border-radius: var(--radius-md);
-            cursor: pointer;
-            transition: var(--transition-fast);
-            letter-spacing: 1px;
-        }
-
-        .btn-restart:hover {
-            background: rgba(74, 144, 217, 0.1);
-            transform: translateY(-2px);
-        }
-
-        .footer-text {
-            text-align: center;
-            font-size: 12px;
-            color: var(--text-muted);
-            margin-top: 25px;
-            padding-bottom: 25px;
-        }
-
-        @media (max-width: 375px) {
-            .container { padding: 15px; }
-            .cover-title { font-size: 28px; }
-            .question-text { font-size: 17px; }
-            .option-text { font-size: 14px; }
-            .city-name { font-size: 32px; }
-            .question-card { padding: 22px; }
-            .city-badge { width: 50px; height: 50px; font-size: 24px; }
-        }
-    </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#244c43">
+  <meta name="description" content="栖城 City Atlas：从20个生活场景出发，探索你的城市偏好。五维画像、城市对比与可解释的匹配报告。">
+  <title>栖城 City Atlas · 找到向往的城市生活</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%23244c43'/%3E%3Cpath d='M14 44V29L32 15l18 14v15M25 44V31h14v13' fill='none' stroke='%23f4ecdb' stroke-width='3'/%3E%3C/svg%3E">
+  <style>:root{--paper:#f6f4ed;--ink:#233c34;--muted:#6b756b;--green:#244c43;--line:#dcded2;--gold:#a1804c;--pale:#e9eddf;--white:#fffef9;--serif:"Noto Serif SC","Source Han Serif SC","Songti SC",SimSun,serif;--sans:"PingFang SC","Microsoft YaHei",system-ui,sans-serif}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:100px}body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.8;-webkit-font-smoothing:antialiased}button,input,textarea{font:inherit}button,a,input,textarea{-webkit-tap-highlight-color:transparent}button{cursor:pointer;color:inherit}a{color:inherit;text-decoration:none}button{border:0}button:disabled{cursor:default;opacity:.4}button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--gold);outline-offset:5px}[hidden]{display:none!important}h1,h2,h3,p{margin:0}h1,h2,h3{line-height:1.4}::selection{background:#cbd6bd}.page-width{width:min(1240px,calc(100% - 96px));margin-inline:auto}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.skip-link{position:fixed;top:-100px;left:20px;z-index:100;background:var(--green);color:white;padding:10px 18px}.skip-link:focus{top:15px}.site-header{border-bottom:1px solid var(--line);background:var(--paper)}.header-inner{width:min(1360px,calc(100% - 80px));height:96px;margin:auto;display:flex;align-items:center;justify-content:space-between}.brand{display:flex;gap:12px;align-items:center;font-family:var(--serif);font-size:28px;letter-spacing:4px;font-weight:700;line-height:1.2}.brand svg{width:39px;height:39px;fill:none;stroke:var(--green);stroke-width:1.4}.brand-en{display:block;font:9px/2.3 Georgia,serif;letter-spacing:3px}.site-header nav{display:flex;align-items:center;gap:35px;font-size:13px}.site-header nav a span{margin-left:14px}.nav-method{padding:0;background:none}.site-header .nav-start{border:1px solid #9ba99b;padding:10px 20px;border-radius:3px}.view{animation:arrive .35s ease-out}.hero{padding-top:47px;display:grid;grid-template-columns:1fr 1fr;gap:54px;padding-bottom:57px;align-items:stretch}.hero-copy{padding:37px 0 14px;align-self:center}.eyebrow,.section-number{font-family:Georgia,var(--sans);font-size:10px;font-weight:400;letter-spacing:2px;line-height:1.6}.eyebrow{display:flex;align-items:center;gap:10px;font-size:10px;letter-spacing:2px;color:#69776a;margin-bottom:27px}.tiny-line{width:26px;height:1px;background:var(--gold);display:inline-block}.hero h1{font-family:var(--serif);font-weight:500;letter-spacing:2px;font-size:clamp(36px,4.1vw,59px);line-height:1.55;white-space:nowrap}.serif-accent{color:#8a744d}.hero-description{font-size:14px;color:var(--muted);line-height:2.15;margin-top:24px}.hero-actions{display:flex;flex-wrap:wrap;align-items:center;gap:23px;margin-top:34px}.button{display:inline-flex;align-items:center;justify-content:center;gap:26px;min-height:49px;padding:13px 23px;line-height:1.5;font-size:13px;font-weight:500;border-radius:3px;transition:background .2s,transform .2s}.button:not(:disabled):hover{transform:translateY(-2px)}.primary{background:var(--green);color:#fffdf3;border:1px solid var(--green)}.primary:not(:disabled):hover{background:#17392f}.secondary{background:transparent;border:1px solid #bdc6b8}.secondary:not(:disabled):hover{background:var(--pale)}.text-link{background:none;padding:0;font-size:12px;line-height:1.8;border-bottom:1px solid transparent;display:inline-block}.text-link:hover{border-bottom-color:var(--ink)}.micro-copy{font-size:10px;letter-spacing:.5px;color:#7f867c;margin-top:17px}.hero-stats{display:flex;gap:0;margin-top:42px;padding-top:23px;border-top:1px solid var(--line);max-width:430px}.hero-stats>div{padding-right:40px;margin-right:35px;border-right:1px solid var(--line)}.hero-stats>div:last-child{border:0;padding:0;margin:0}.hero-stats strong{display:block;font:31px/1.4 Georgia,serif;font-weight:400;letter-spacing:-1px}.hero-stats strong span{font:10px var(--sans);letter-spacing:0;margin-left:6px;color:var(--muted)}.hero-stats small{font-size:10px;letter-spacing:1px;color:var(--muted)}.hero-art{position:relative;background:#244b40;color:#efe7ce;min-width:0;min-height:550px;overflow:hidden;border-radius:150px 4px 4px 4px}.city-art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.art-topline{position:absolute;top:30px;left:44px;right:30px;z-index:2;display:flex;justify-content:space-between;gap:15px;font:8px/1.6 Georgia,var(--sans);letter-spacing:1.5px;color:#d8d6bd;opacity:.7}.art-topline span:first-child{margin-left:63px}.art-caption{display:flex;align-items:center;gap:16px;position:absolute;bottom:85px;left:39px;right:38px;z-index:2;font-family:var(--serif);font-size:19px;line-height:1.7;letter-spacing:3px}.art-caption-line{width:27px;height:1px;background:#d6cba8}.art-index{margin-left:auto;border:1px solid #c6c4a477;padding:7px 8px;font-size:13px;line-height:1.6;letter-spacing:1px}.art-label{position:absolute;bottom:24px;left:38px;right:35px;border-top:1px solid #c6c4a433;padding-top:13px;font:8px/1.5 Georgia,serif;letter-spacing:2px;display:flex;align-items:center;gap:9px}.label-dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:#a8b68c;flex-shrink:0}.intro-strip{display:grid;grid-template-columns:1fr 1fr 40px;gap:40px;align-items:center;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding-block:31px}.section-number{color:#8d947f;font-size:9px;display:block}.intro-strip h2{font-family:var(--serif);font-size:23px;letter-spacing:1px;font-weight:500;margin-top:9px}.intro-strip p{font-size:12px;line-height:2;color:var(--muted)}.round-link{height:39px;width:39px;border:1px solid #bac2b3;background:transparent;border-radius:50%;font-size:19px}.home-cities{padding-top:53px;padding-bottom:45px}.section-heading{display:flex;justify-content:space-between;gap:24px;align-items:end;margin-bottom:24px}.section-heading h2{font-family:var(--serif);font-size:25px;letter-spacing:1px;font-weight:500;margin-top:10px}.home-city-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}.city-tile{display:block;width:100%;background:#eeede3;border:1px solid #dedfd2;border-radius:3px;padding:24px;text-align:left;position:relative;min-width:0;transition:background .2s,transform .2s}.city-tile:hover{background:#e4e9da;transform:translateY(-4px)}.city-tile .city-tile-top{display:flex;align-items:center;justify-content:space-between;gap:12px}.city-tile .city-code{font:10px Georgia,serif;letter-spacing:1px;color:#7a856f}.city-tile h3{font-family:var(--serif);font-size:27px;font-weight:500;letter-spacing:2px;margin-top:28px}.city-tile p{color:var(--muted);font-size:11px;margin-top:6px;line-height:1.8}.city-tile .city-type{font-size:10px;border-top:1px solid #ced4c2;display:block;margin-top:25px;padding-top:12px;letter-spacing:1px}.tile-arrow{font-size:18px;color:#617359}.tile-lines{position:absolute;right:20px;top:62px;opacity:.35;width:76px;height:60px}.closing-note{border-top:1px solid var(--line);padding:35px 0 43px;text-align:center}.closing-note>span{font-family:var(--serif);font-size:18px;letter-spacing:2px}.closing-note small{display:block;font-size:10px;margin-top:11px;color:#8b9081;letter-spacing:1px}.site-footer{padding:26px 0;display:flex;gap:24px;align-items:center;justify-content:space-between;border-top:1px solid var(--line);font-size:10px;color:#818777}.footer-brand{font-family:var(--serif);font-size:17px;letter-spacing:2px;color:var(--ink);white-space:nowrap}.footer-brand span{font:8px Georgia,serif;letter-spacing:1px;margin-left:9px}.site-footer button{padding:0;background:none;font-size:10px;color:var(--muted)}
+.quiz-layout{padding-top:62px;padding-bottom:64px;display:grid;grid-template-columns:260px 1fr;gap:90px;min-height:760px}.quiz-sidebar{padding-top:7px}.quiz-sidebar h2{font-family:var(--serif);font-size:32px;font-weight:500;line-height:1.65;letter-spacing:1px;margin-top:16px}.quiz-sidebar>p{color:var(--muted);font-size:12px;line-height:2;margin-top:19px}.chapter-list{padding:0;margin:35px 0 30px;list-style:none}.chapter-list li{display:flex;gap:14px;align-items:center;font-size:12px;padding:10px 0;color:#919787}.chapter-list li span:first-child{width:23px;height:23px;border-radius:50%;border:1px solid #cbd0c0;display:grid;place-items:center;font:10px Georgia,serif}.chapter-list li.current{color:var(--green)}.chapter-list li.current span:first-child{background:var(--green);color:white;border-color:var(--green)}.chapter-list li.complete span:first-child{background:#e1e8d6;border-color:#e1e8d6;color:var(--green)}.chapter-list li small{margin-left:auto;font-size:9px}.save-note{font-size:10px;color:#7b856f;display:flex;align-items:center;gap:8px;margin-bottom:16px}.quiz-main{max-width:750px;min-width:0}.quiz-meta{display:flex;justify-content:space-between;font-size:10px;letter-spacing:1px;color:var(--muted)}.progress-track{height:3px;background:#e0e3d7;margin-top:14px;border-radius:3px;overflow:hidden}.progress-track div{height:100%;background:var(--green);transition:width .25s}.question-body{margin-top:40px}.question-scene{display:inline-block;font-size:10px;letter-spacing:1px;padding:5px 11px;background:#e6ebdc;color:#677659;border-radius:2px;margin-bottom:16px}#question-title{font-family:var(--serif);font-size:28px;line-height:1.7;font-weight:500;letter-spacing:.5px;outline:none}#question-subtitle{font-size:12px;color:var(--muted);margin-top:12px;margin-bottom:25px}#answer-options{margin:0;padding:0;border:0;display:grid;gap:10px}.answer-row{position:relative;display:flex;align-items:center;cursor:pointer;padding:14px 18px;border:1px solid #d6dccd;border-radius:3px;background:#fbfaf4;min-height:58px;transition:background .15s,border-color .15s}.answer-row:hover{background:#edf0e4;border-color:#9dad93}.answer-row:has(input:checked){border-color:var(--green);background:#e8edde}.answer-row:has(input:focus-visible){outline:3px solid var(--gold);outline-offset:3px}.answer-row input{position:absolute;opacity:0;width:1px;height:1px}.answer-number{font:12px Georgia,serif;color:#89947c;width:25px;height:25px;border:1px solid #d1d8c5;display:grid;place-items:center;border-radius:50%;margin-right:15px}.answer-row:has(input:checked) .answer-number{background:var(--green);color:white;border-color:var(--green)}.answer-label{font-size:13px}.answer-detail{margin-left:10px;color:#7f8879;font-size:10px}.answer-radio{height:16px;width:16px;border:1px solid #b7c1aa;border-radius:50%;margin-left:auto}.answer-row:has(input:checked) .answer-radio{border:5px solid var(--green)}.quiz-controls{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:25px}.keyboard-hint{font-size:9px;color:#8b9380}.quiz-footnote{font-size:10px;color:#8b9380;margin-top:18px;text-align:right}
+.atlas-view{padding-block:60px}.atlas-heading{display:flex;justify-content:space-between;align-items:end;gap:30px}.atlas-heading h1{font-family:var(--serif);font-size:42px;font-weight:500;margin-top:17px;letter-spacing:1px}.atlas-heading p{color:var(--muted);font-size:12px;margin-top:17px}.atlas-controls{display:flex;align-items:center;gap:24px;justify-content:space-between;margin-top:38px;border-block:1px solid var(--line);padding-block:17px}.filter-list{display:flex;gap:8px;flex-wrap:wrap}.filter-button{padding:7px 12px;border-radius:2px;background:transparent;font-size:11px;color:#67755f;white-space:nowrap}.filter-button[aria-pressed=true]{background:var(--green);color:#fffdf3}.search-box{display:flex;align-items:center;gap:8px;border-bottom:1px solid #b8c1ad;padding:4px;flex-shrink:0}.search-box svg{width:16px;height:16px;fill:none;stroke:#7c8871;stroke-width:1.5}.search-box input{font-size:11px;width:142px;border:0;background:none;color:var(--ink);padding:5px;outline-offset:1px}.atlas-count{font-size:10px;color:#8a927e;margin:19px 0}.atlas-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}.atlas-grid .city-tile{min-height:235px}.atlas-disclaimer{font-size:10px;color:#8a927e;text-align:center;margin-top:35px}.empty-state{padding:50px 20px;grid-column:1/-1;text-align:center;font-size:13px;color:var(--muted)}
+.result-view{padding-block:48px 55px}.report-heading{display:flex;justify-content:space-between;gap:25px;align-items:center;margin-bottom:30px}.report-heading h1{font-family:var(--serif);font-size:32px;font-weight:500;margin-top:9px;letter-spacing:1px}.report-heading p{font-size:11px;color:var(--muted);margin-top:10px}.report-date{font:10px/1.8 Georgia,var(--sans);color:#879079;letter-spacing:1px;text-align:right}.report-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:24px}.destination-card{background:var(--green);padding:36px;color:#fff7df;border-radius:4px;position:relative;overflow:hidden}.destination-card .destination-meta{display:flex;justify-content:space-between;font-size:9px;letter-spacing:2px;color:#c5ccb2}.destination-card .city-big{font-family:var(--serif);font-size:60px;font-weight:400;letter-spacing:6px;margin-top:23px;line-height:1.3}.destination-card .destination-english{font:11px Georgia,serif;letter-spacing:3px;color:#c1c8af;margin-top:5px}.destination-card .destination-slogan{font-family:var(--serif);font-size:18px;letter-spacing:1px;margin-top:23px}.destination-card .destination-description{font-size:11px;line-height:2.1;color:#d0d7bd;margin-top:14px;max-width:370px}.destination-card .score-row{display:flex;justify-content:space-between;gap:20px;align-items:end;border-top:1px solid #a3b59650;margin-top:28px;padding-top:20px}.score-row .score{font:43px/1 Georgia,serif}.score small{font-size:18px;margin-left:3px}.score-label{font-size:10px;color:#c5ccb2;margin-top:8px}.destination-card .score-explain{font-size:9px;color:#bdcbb0;text-align:right;line-height:1.9;max-width:170px}.tags{display:flex;gap:7px;flex-wrap:wrap;margin-top:16px}.tag{font-size:9px;border:1px solid #b6c7a96b;border-radius:2px;padding:3px 8px;color:#dce2cb;letter-spacing:.5px}.radar-card{padding:28px 30px;background:#eeefe4;border:1px solid var(--line);border-radius:4px}.card-heading{display:flex;justify-content:space-between;gap:20px;align-items:center}.card-heading h2{font-family:var(--serif);font-size:20px;font-weight:500}.card-heading>span{font-size:9px;color:#828a78}.radar-wrap{display:flex;justify-content:center;margin:5px 0 -6px}.radar{display:block;max-width:100%;width:350px;height:auto}.radar-legend{display:flex;justify-content:center;gap:25px;font-size:10px;color:var(--muted)}.radar-legend span{display:flex;gap:7px;align-items:center}.legend-line{width:16px;height:3px;background:var(--green)}.legend-line.city{background:var(--gold)}.dimension-table{width:100%;border-collapse:collapse;font-size:10px;line-height:1.8;margin-top:20px}.dimension-table th,.dimension-table td{padding:5px 0;border-bottom:1px solid #d8ddce;text-align:right;font-weight:400}.dimension-table th:first-child,.dimension-table td:first-child{text-align:left}.dimension-table thead{color:#839078}.dimension-table .user-score{color:var(--green);font-weight:700}.report-details{display:grid;grid-template-columns:1.1fr 1fr;gap:24px;margin-top:24px}.explanation-card,.alternatives-card{border:1px solid var(--line);padding:28px 30px;border-radius:4px}.reason-item{display:flex;gap:13px;margin-top:19px}.reason-number{font:11px Georgia,serif;color:var(--gold);padding-top:2px}.reason-item h3{font-size:12px;font-weight:500}.reason-item p{font-size:11px;color:var(--muted);line-height:1.9;margin-top:5px}.tradeoff{margin-top:20px;padding-top:17px;border-top:1px solid var(--line);font-size:11px;color:var(--muted);line-height:1.9}.tradeoff strong{font-weight:500;color:var(--gold)}.alternative{display:flex;align-items:center;gap:15px;border-bottom:1px solid var(--line);padding:20px 0}.alternative:last-child{border-bottom:0}.alternative .rank{font:14px Georgia,serif;color:#8b947e}.alternative h3{font-family:var(--serif);font-size:21px;font-weight:500;letter-spacing:1px}.alternative p{font-size:10px;color:var(--muted);margin-top:3px}.alternative .alt-score{margin-left:auto;font:25px Georgia,serif;color:var(--green);text-align:right}.alternative .alt-score small{font:8px var(--sans);display:block;color:#829075;margin-top:3px}.alternative button{background:none;padding:7px;font-size:17px}.report-actions{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:32px}.report-actions .button{font-size:11px;gap:12px;padding-inline:19px}.report-actions .text-link{align-self:center;margin-left:10px}.report-notice{text-align:center;font-size:10px;color:#818a76;margin-top:22px;line-height:2}.report-notice button{background:none;padding:0;color:var(--green);text-decoration:underline;font-size:inherit}.print-only{display:none}
+dialog{border:1px solid #bdc8b2;border-radius:5px;background:var(--paper);color:var(--ink);width:min(670px,calc(100% - 32px));padding:30px 36px;max-height:85vh;overflow:auto;box-shadow:0 25px 120px #10251c33}dialog::backdrop{background:#142a225c;backdrop-filter:blur(4px)}.dialog-top{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:18px}.icon-button{font-size:26px;line-height:1;width:34px;height:34px;background:none;border:1px solid var(--line);border-radius:50%;color:#708067}.dialog-top .section-number{font-size:8px}dialog h2{font-family:var(--serif);font-size:30px;font-weight:500;letter-spacing:2px}dialog>p,.dialog-lead{font-size:12px;line-height:2;color:var(--muted);margin-top:13px}.method-section{margin-top:24px}.method-section h3{font-size:13px;font-weight:500;margin-bottom:9px}.method-section p{font-size:11px;line-height:2;color:var(--muted)}.formula{background:#e7ecde;padding:13px;margin:12px 0;font-size:11px;line-height:1.9;border-left:2px solid #78916e}.full-width{width:100%;margin-top:27px}.city-dialog-head{display:flex;gap:20px;justify-content:space-between;align-items:center}.city-dialog-head h2{font-size:42px}.city-dialog-head span{font:12px Georgia,serif;color:#859175;letter-spacing:2px}.city-dialog-slogan{font-family:var(--serif);font-size:19px;margin-top:14px}.city-dialog-description{font-size:12px;line-height:2.1;color:var(--muted);margin-top:16px}.city-dimensions{margin-top:25px;display:grid;gap:12px}.city-dimension{display:grid;grid-template-columns:70px 1fr 28px;align-items:center;gap:14px;font-size:10px;color:var(--muted)}.mini-track{height:4px;background:#dce2d1}.mini-track span{display:block;height:100%;background:#738b68}.city-profile-note{font-size:10px;color:#8a927e;margin-top:20px;line-height:1.9}.dialog-actions{display:flex;justify-content:end;gap:12px;margin-top:30px}#reset-dialog{max-width:510px}#reset-dialog h2{font-size:24px}#toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,18px);padding:11px 22px;background:#203f35;color:#fff8e5;border-radius:4px;font-size:12px;line-height:1.8;z-index:10;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;max-width:calc(100vw - 36px);width:max-content;text-align:center}#toast.visible{opacity:1;transform:translate(-50%,0)}#share-text{width:100%;resize:vertical;padding:15px;border:1px solid #bcc8b0;background:#fffef5;margin-top:20px;font-size:12px;line-height:2;color:var(--ink)}.noscript{padding:30px;text-align:center}.pill-light{display:inline-block;background:#e4e9db;padding:4px 9px;font-size:10px;color:#708362;border-radius:2px;margin-top:15px}.mobile-save{display:none}
+.clear-home{font-size:10px;color:#6b756b;margin-top:9px;text-decoration:underline}.micro-copy,.section-number,.closing-note small,.site-footer,.quiz-footnote,.atlas-count,.atlas-disclaimer,.city-profile-note,.report-notice{color:#68735f}.destination-card .section-number{color:#c5ccb2}
+@keyframes arrive{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@media(min-width:1500px){.hero{gap:75px}.hero-art{min-height:590px}}
+@media(max-width:1100px){.page-width{width:calc(100% - 64px)}.header-inner{width:calc(100% - 64px)}.hero{gap:30px}.hero-copy{padding-top:15px}.hero h1{font-size:43px}.hero-actions{gap:16px}.hero-art{min-height:525px}.hero-stats>div{padding-right:30px;margin-right:25px}.hero .text-link{font-size:11px}.art-topline{left:25px;font-size:7px;letter-spacing:.5px}.art-topline span:first-child{margin-left:50px}.quiz-layout{grid-template-columns:210px 1fr;gap:45px}.atlas-grid{grid-template-columns:repeat(3,1fr)}.atlas-controls{align-items:start}.filter-list{gap:3px}.filter-button{padding:7px 9px}.home-city-grid{gap:14px}.city-tile{padding:20px}.tile-lines{width:60px;right:14px}.report-grid,.report-details{grid-template-columns:1fr 1fr}.keyboard-hint{display:none}}
+@media(max-width:800px){.page-width{width:calc(100% - 40px)}.header-inner{width:calc(100% - 40px);height:80px}.brand{font-size:24px}.brand svg{width:31px;height:31px}.brand-en{font-size:8px;letter-spacing:2px}.site-header nav{gap:22px;font-size:11px}.nav-start{display:none}.hero{gap:25px;padding-top:28px;padding-bottom:35px}.hero h1{font-size:33px}.hero-description{font-size:12px}.eyebrow{font-size:8px;letter-spacing:1px}.hero-art{min-height:475px;border-top-left-radius:100px}.hero-actions{margin-top:25px;gap:14px}.hero .button{padding:13px 17px;font-size:11px}.hero-stats{margin-top:28px}.hero-stats>div{padding-right:18px;margin-right:18px}.hero-stats strong{font-size:26px}.micro-copy{font-size:8px}.art-topline{display:none}.art-caption{left:24px;right:24px;bottom:70px;font-size:15px;gap:10px}.art-caption-line{width:14px}.art-label{left:24px;right:24px;font-size:6px;letter-spacing:1px}.art-index{font-size:10px;padding:5px}.intro-strip{grid-template-columns:1fr 1fr 34px;gap:20px;padding-block:25px}.intro-strip h2{font-size:19px}.intro-strip p{font-size:10px}.round-link{width:34px;height:34px}.section-number{font-size:8px;letter-spacing:1.5px}.section-heading h2{font-size:20px}.home-cities{padding-top:35px}.section-heading>.text-link{font-size:10px}.home-city-grid{grid-template-columns:repeat(2,1fr)}.home-city-grid .city-tile{min-height:210px}.site-footer{gap:16px;flex-wrap:wrap}.site-footer>p{display:none}.quiz-layout{grid-template-columns:1fr;gap:25px;padding-top:30px;min-height:0}.quiz-sidebar h2,.quiz-sidebar>p,.quiz-sidebar .section-number,.chapter-list,.quiz-sidebar .save-note{display:none}.quiz-sidebar{padding:0}.quiz-sidebar .text-link{font-size:11px}.question-body{margin-top:27px}#question-title{font-size:27px}.quiz-main{max-width:100%}.quiz-controls{margin-top:22px}.quiz-footnote{font-size:9px;text-align:center}.atlas-view{padding-block:35px}.atlas-heading h1{font-size:32px}.atlas-heading{display:block}.atlas-heading>.text-link{margin-top:18px}.atlas-controls{flex-wrap:wrap;gap:15px;margin-top:25px}.atlas-grid{grid-template-columns:repeat(2,1fr);gap:15px}.atlas-grid .city-tile{min-height:220px}.search-box{width:100%}.search-box input{width:100%}.report-grid,.report-details{grid-template-columns:1fr}.report-heading h1{font-size:27px}.report-date{font-size:8px;letter-spacing:0}.destination-card{padding:28px 30px}.radar-card{padding:24px}.report-details{gap:18px;margin-top:18px}.report-view{padding-top:30px}.report-actions .text-link{width:100%;text-align:center;margin:9px 0 0}.report-actions{gap:10px}.report-actions .button{flex:1 1 40%;padding-inline:10px}.explanation-card,.alternatives-card{padding:25px}.radar-wrap{margin-top:10px}.dimension-table{margin-top:15px}}
+@media(max-width:580px){.hero{grid-template-columns:1fr;gap:27px;padding-top:30px}.hero-copy{padding:4px 5px 0}.hero h1{font-size:42px;line-height:1.5;letter-spacing:1px}.eyebrow{margin-bottom:20px;font-size:8px}.hero-description{font-size:12px;margin-top:19px;line-height:2}.hero-actions{gap:21px;margin-top:26px}.hero .button{font-size:12px;min-height:47px;padding:12px 18px;gap:18px}.hero-stats{max-width:none;justify-content:start;margin-top:27px;padding-top:19px}.hero-stats>div{padding-right:38px;margin-right:33px}.hero-stats strong{font-size:29px}.hero-stats small{font-size:9px}.micro-copy{font-size:9px}.hero-art{min-height:360px;border-top-left-radius:100px}.city-art{object-fit:cover;height:auto;min-height:100%;top:-28%;width:100%}.art-caption{font-size:17px;bottom:71px}.art-topline{display:flex;top:20px;left:20px;font-size:6px}.art-topline span:first-child{margin-left:40px}.art-index{font-size:11px}.art-label{font-size:7px;letter-spacing:1.3px;bottom:19px}.intro-strip{grid-template-columns:1fr 34px;gap:17px;padding-block:25px}.intro-strip>p{grid-column:1;grid-row:2;font-size:11px}.intro-strip .round-link{grid-column:2;grid-row:1/3;align-self:center}.intro-strip h2{font-size:20px;margin-top:7px}.section-heading{align-items:start;gap:18px;flex-direction:column;margin-bottom:20px}.section-heading h2{font-size:21px;line-height:1.7}.section-heading .text-link{font-size:10px}.home-cities{padding-bottom:28px}.city-tile{padding:18px}.city-tile h3{font-size:25px;margin-top:24px}.city-tile p{font-size:10px}.city-tile .city-type{margin-top:21px;font-size:9px}.tile-lines{width:52px;right:12px;top:69px}.city-tile .city-code{font-size:9px}.home-city-grid{gap:12px}.home-city-grid .city-tile{min-height:210px}.closing-note{padding-block:27px}.closing-note>span{font-size:14px;letter-spacing:1px}.closing-note small{font-size:9px}.site-footer{padding-block:23px}.site-footer button{font-size:9px}.site-header nav{gap:20px}.site-header nav a span{margin-left:4px}.brand{gap:9px;font-size:24px}.quiz-layout{padding-top:22px;padding-bottom:38px;gap:22px}.quiz-meta{font-size:9px}#question-title{font-size:24px;line-height:1.7}.question-scene{font-size:9px;margin-bottom:14px}.answer-row{padding:13px 15px;min-height:59px}.answer-label{font-size:12px}.answer-detail{font-size:9px}.answer-number{width:23px;height:23px;margin-right:13px;font-size:11px}#question-subtitle{font-size:11px;margin-bottom:21px}.quiz-controls .button{font-size:12px;padding:12px 18px;gap:18px}.atlas-heading h1{font-size:29px;line-height:1.7}.atlas-heading h1 span{display:block}.atlas-heading p{font-size:11px;margin-top:10px}.atlas-grid{gap:12px}.atlas-grid .city-tile{min-height:220px}.filter-button{font-size:10px;padding:6px 9px}.report-heading{margin-bottom:23px;align-items:start}.report-heading h1{font-size:26px}.report-heading p{max-width:225px;font-size:10px}.report-date{padding-top:3px}.destination-card .city-big{font-size:55px}.destination-card .destination-slogan{font-size:18px}.report-grid{gap:18px}.report-heading .section-number{font-size:7px}.report-actions .button{font-size:10px}.report-notice{font-size:9px}.card-heading h2{font-size:19px}dialog{padding:24px;max-height:88vh}dialog h2{font-size:27px}.dialog-top{margin-bottom:13px}.formula{font-size:10px}.method-section p{font-size:11px}.dialog-actions .button{font-size:11px;padding-inline:14px;gap:5px}.city-dialog-head h2{font-size:37px}.city-dialog-head span{font-size:10px}.city-dialog-slogan{font-size:18px}.city-dialog-description{font-size:11px}.city-dimension{grid-template-columns:65px 1fr 23px;gap:10px}}
+@media(max-width:580px){.hero-art .city-art{height:100%;min-height:0;top:0;width:100%}}
+@media(max-width:360px){.hero h1{font-size:36px}.hero-stats>div{padding-right:28px;margin-right:24px}.hero-actions{gap:13px}.hero .button{font-size:11px}.hero .text-link{font-size:10px}.answer-detail{display:none}.site-header nav{gap:13px}.header-inner{width:calc(100% - 32px)}.page-width{width:calc(100% - 32px)}.brand{font-size:21px}.brand svg{width:28px}.brand-en{font-size:7px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation:none!important;transition:none!important}}
+@media print{@page{size:A4;margin:12mm}body{font-size:11px;background:white;color:#20392e}.site-header,.site-footer,dialog,#toast,.report-actions,.report-notice button,.skip-link{display:none!important}.page-width{width:100%;margin:0}.view{display:none!important}#result-view{display:block!important;padding:0}.report-grid{grid-template-columns:1fr 1fr;gap:14px}.report-details{grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}.report-heading{margin-bottom:20px}.report-heading h1{font-size:26px}.destination-card{background:#edf1e7;color:#20392e;padding:22px;border:1px solid #b7c3ac;print-color-adjust:exact;-webkit-print-color-adjust:exact}.destination-card .city-big{font-size:43px}.destination-card .destination-meta,.destination-card .destination-description,.destination-card .destination-english,.destination-card .score-label,.destination-card .score-explain,.destination-card .tag{color:#547149}.destination-card .tag{border-color:#9eae94}.destination-card .destination-slogan{font-size:17px}.destination-card .destination-description{font-size:10px}.score-row .score{font-size:35px}.radar-card{padding:18px;print-color-adjust:exact;-webkit-print-color-adjust:exact}.radar{width:250px}.card-heading h2{font-size:16px}.dimension-table{font-size:9px;margin-top:7px}.radar-legend{font-size:9px}.explanation-card,.alternatives-card{padding:19px;break-inside:avoid}.reason-item{margin-top:14px}.reason-item h3{font-size:11px}.reason-item p,.tradeoff{font-size:9px}.report-notice{font-size:8px;margin-top:18px}.alternative{padding-block:15px}.alternative h3{font-size:19px}.alternative button{display:none}.print-only{display:block;font-size:9px;margin-top:14px;color:#607355;line-height:1.9}}
+</style>
 </head>
 <body>
-    <div class="floating-bg" id="floating-bg"></div>
-    
-    <div class="container">
-        <div id="cover" class="page active cover-page">
-            <div class="cover-decoration">🌆</div>
-            <div class="cover-decoration right">🌊</div>
-            
-            <h1 class="cover-title">
-                <span class="title-animation">🏙️</span> 宜居城市测试
-            </h1>
-            <p class="cover-subtitle">想知道哪个城市最适合你吗？<br>20道趣味题 + 生辰五行，精准解锁你的理想宜居地！</p>
-            
-            <div class="city-showcase">
-                <div class="city-badge">🗼<span class="city-name-tooltip">北京</span></div>
-                <div class="city-badge">🏯<span class="city-name-tooltip">西安</span></div>
-                <div class="city-badge">🌴<span class="city-name-tooltip">三亚</span></div>
-                <div class="city-badge">🏞️<span class="city-name-tooltip">成都</span></div>
-                <div class="city-badge">⛩️<span class="city-name-tooltip">杭州</span></div>
-                <div class="city-badge">🌉<span class="city-name-tooltip">上海</span></div>
-                <div class="city-badge">🌊<span class="city-name-tooltip">厦门</span></div>
-                <div class="city-badge">🌸<span class="city-name-tooltip">昆明</span></div>
-            </div>
-            
-            <div class="feature-highlights">
-                <div class="highlight-card">
-                    <div class="highlight-icon">🎯</div>
-                    <div class="highlight-text">精准匹配</div>
-                </div>
-                <div class="highlight-card">
-                    <div class="highlight-icon">🌟</div>
-                    <div class="highlight-text">五行命理</div>
-                </div>
-                <div class="highlight-card">
-                    <div class="highlight-icon">💫</div>
-                    <div class="highlight-text">趣味测试</div>
-                </div>
-                <div class="highlight-card">
-                    <div class="highlight-icon">📊</div>
-                    <div class="highlight-text">详细解读</div>
-                </div>
-            </div>
-            
-            <div class="fun-facts">
-                <div class="fun-facts-title">📊 趣味数据</div>
-                <ul class="fun-facts-list">
-                    <li>已有 100,000+ 人参与测试</li>
-                    <li>最受欢迎的城市是成都和杭州</li>
-                    <li>测试准确率高达 85%</li>
-                    <li>平均完成时间仅需 3 分钟</li>
-                    <li>38% 的人选到了理想城市</li>
-                </ul>
-            </div>
-            
-            <button class="btn-primary" onclick="startQuiz()">开始测试</button>
-            <p class="footer-text">测完记得分享给朋友哦！</p>
-        </div>
-
-        <div id="quiz" class="page">
-            <div class="quiz-progress">
-                <span class="progress-text"><span id="current-question">1</span>/20</span>
-                <div class="progress-bar">
-                    <div id="progress-fill" class="progress-fill" style="width: 5%"></div>
-                </div>
-            </div>
-            <div id="question-container" class="question-card"></div>
-        </div>
-
-        <div id="birth" class="page">
-            <div class="page-header" style="text-align: center; margin-bottom: 30px;">
-                <h1 style="font-size: 28px; font-weight: 800; background: linear-gradient(135deg, var(--primary-dark), var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px;">🔮 生辰信息</h1>
-                <p style="font-size: 15px; color: var(--text-secondary);">填写简单的生辰信息<br>让五行命理为你匹配最适合的城市！</p>
-            </div>
-            
-            <div class="birth-wuxing-hint">
-                <div class="hint-icon">🌟</div>
-                <div class="hint-text">根据传统五行命理，不同生辰的人适合不同的城市气质。我们会结合你的五行属性，为你推荐最契合的宜居之地！</div>
-            </div>
-            
-            <div class="form-card">
-                <div class="form-title">出生日期</div>
-                
-                <div class="form-group">
-                    <label class="form-label">出生年份</label>
-                    <select id="birth-year" class="form-input">
-                        <option value="">请选择年份</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">出生月份</label>
-                    <select id="birth-month" class="form-input">
-                        <option value="">请选择月份</option>
-                        <option value="1">1月</option>
-                        <option value="2">2月</option>
-                        <option value="3">3月</option>
-                        <option value="4">4月</option>
-                        <option value="5">5月</option>
-                        <option value="6">6月</option>
-                        <option value="7">7月</option>
-                        <option value="8">8月</option>
-                        <option value="9">9月</option>
-                        <option value="10">10月</option>
-                        <option value="11">11月</option>
-                        <option value="12">12月</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">大致出生时段</label>
-                    <div class="time-slots">
-                        <div class="time-slot" onclick="selectTimeSlot('morning')" id="slot-morning">
-                            <span class="time-icon">🌅</span>
-                            <span class="time-text">早晨(5-9点)</span>
-                        </div>
-                        <div class="time-slot" onclick="selectTimeSlot('noon')" id="slot-noon">
-                            <span class="time-icon">☀️</span>
-                            <span class="time-text">中午(11-13点)</span>
-                        </div>
-                        <div class="time-slot" onclick="selectTimeSlot('afternoon')" id="slot-afternoon">
-                            <span class="time-icon">🌤️</span>
-                            <span class="time-text">下午(13-17点)</span>
-                        </div>
-                        <div class="time-slot" onclick="selectTimeSlot('evening')" id="slot-evening">
-                            <span class="time-icon">🌙</span>
-                            <span class="time-text">晚上(19-23点)</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <button class="btn-primary" onclick="calculateResult()">生成结果</button>
-            <p class="footer-text">信息仅供娱乐参考</p>
-        </div>
-
-        <div id="result" class="page">
-            <div class="result-header">
-                <h2 class="result-title">测试结果</h2>
-                <p class="result-subtitle">你的理想宜居城市</p>
-            </div>
-            
-            <div class="city-card">
-                <div class="city-emoji" id="result-emoji">🏙️</div>
-                <div class="city-name" id="result-city"></div>
-                <div class="city-tag" id="result-tag"></div>
-                <div class="match-score">
-                    <span>❤️</span>
-                    <span>匹配度 <span id="match-score">98%</span></span>
-                </div>
-                <div class="personality-tags" id="personality-tags"></div>
-            </div>
-
-            <div class="compatibility-section">
-                <h3 class="compatibility-title">匹配理由</h3>
-                <ul class="compatibility-list" id="compatibility-list"></ul>
-            </div>
-
-            <div class="analysis-card">
-                <h3 class="analysis-title">详细解读</h3>
-                <p class="analysis-content" id="result-analysis"></p>
-            </div>
-
-            <div class="radar-card">
-                <h3 class="radar-title">性格维度分析</h3>
-                <div class="radar-container">
-                    <canvas id="radar-chart" width="300" height="300"></canvas>
-                </div>
-            </div>
-
-            <div class="wuxing-section">
-                <h3 class="wuxing-title">五行命理参考</h3>
-                <p class="wuxing-content" id="wuxing-content"></p>
-                <div class="wuxing-info">
-                    <div class="wuxing-badge" id="wuxing-badge">五行匹配</div>
-                </div>
-            </div>
-
-            <div class="share-buttons">
-                <button class="btn-share" onclick="shareToWechat()">
-                    <span>💬</span> 分享好友
-                </button>
-                <button class="btn-share" onclick="shareResult()">
-                    <span>📤</span> 分享朋友圈
-                </button>
-            </div>
-            <button class="btn-restart" onclick="restartQuiz()">再测一次</button>
-            <p class="footer-text">快来看看朋友适合哪个城市！</p>
-        </div>
+<a class="skip-link" href="#main">跳转到主要内容</a>
+<header class="site-header">
+  <div class="header-inner">
+    <a class="brand" href="#home" aria-label="栖城，返回首页"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M3 26V13L16 3l13 10v13M11 26V15h10v11M3 20h8M21 20h8"/></svg><span>栖城<span class="brand-en">CITY ATLAS</span></span></a>
+    <nav aria-label="主导航"><a href="#cities" id="nav-cities">城市图鉴 <span>↗</span></a><button class="nav-method" data-method>关于测试</button><a class="nav-start" href="#test">开始探索 <span>→</span></a></nav>
+  </div>
+</header>
+<main id="main" tabindex="-1">
+  <section id="home-view" class="view">
+    <div class="hero page-width">
+      <div class="hero-copy">
+        <div class="eyebrow"><span class="tiny-line"></span> A PLACE THAT FEELS LIKE YOU</div>
+        <h1>把向往的生活，<br>放进<span class="serif-accent">一座城。</span></h1>
+        <p class="hero-description">有人向往天际线，有人偏爱山海之间。<br>从日常的细小偏好出发，遇见与你合拍的城市。</p>
+        <div class="hero-actions"><button id="start-button" class="button primary">开启我的城市探索 <span>↗</span></button><a href="#cities" class="text-link">先翻翻城市图鉴 <span>→</span></a></div>
+        <p id="resume-hint" class="micro-copy">约 3–5 分钟 · 无需登录 · 答案仅保存在本机</p><button id="clear-home-record" class="text-link clear-home" hidden>清除本机记录</button>
+        <div class="hero-stats"><div><strong>20<span>个</span></strong><small>生活场景</small></div><div><strong>05<span>维</span></strong><small>偏好画像</small></div><div><strong>20<span>座</span></strong><small>候选城市</small></div></div>
+      </div>
+      <div class="hero-art" aria-label="城市、山峦与河流的抽象插画">
+        <div class="art-topline"><span>THE CITY & YOU</span><span>生活的另一种可能 / 01</span></div>
+        <svg class="city-art" viewBox="0 0 650 640" role="img" aria-label="山水间的城市建筑意象">
+          <defs><pattern id="grid" width="42" height="42" patternUnits="userSpaceOnUse" patternTransform="rotate(-25)"><path d="M42 0H0V42" fill="none" stroke="#fbf4df" stroke-opacity=".07"/></pattern><linearGradient id="artSky" x2="0" y2="1"><stop stop-color="#2d574c"/><stop offset="1" stop-color="#1c3e37"/></linearGradient><linearGradient id="river" x2="1" y2="1"><stop stop-color="#9bb7a1"/><stop offset="1" stop-color="#628b7e"/></linearGradient><pattern id="windows" width="18" height="22" patternUnits="userSpaceOnUse"><rect x="5" y="5" width="4" height="8" fill="#d3b87d" opacity=".65"/></pattern></defs>
+          <rect width="650" height="640" fill="url(#artSky)"/><rect width="650" height="640" fill="url(#grid)"/>
+          <g fill="none" stroke="#c4d0b0" stroke-width=".7" opacity=".16"><ellipse cx="334" cy="302" rx="275" ry="201" transform="rotate(-25 334 302)"/><ellipse cx="334" cy="302" rx="250" ry="179" transform="rotate(-25 334 302)"/><ellipse cx="334" cy="302" rx="222" ry="156" transform="rotate(-25 334 302)"/><path d="M-40 150Q120 70 256 152T690 86M-40 180Q120 100 256 182T690 116M-40 210Q120 130 256 212T690 146"/></g>
+          <circle cx="493" cy="153" r="45" fill="#d3b87d"/><circle cx="508" cy="141" r="46" fill="#2b5248"/>
+          <path d="M-50 403L95 214l103 105 91-171 164 199 73-133 168 192v244H0Z" fill="#43695b"/><path d="M-20 436l145-136 103 102 110-158 124 151 72-86 136 131v200H0Z" fill="#557c67"/>
+          <path d="M-40 550Q150 376 390 428T690 364v280H0Z" fill="#153c34"/>
+          <path d="M650 440c-150 28-176 101-300 105-102 2-130-25-211 13-38 18-53 47-55 82h205c-44-42 8-48 91-45 175 7 178-91 270-94Z" fill="url(#river)"/>
+          <g stroke="#e9e0c3" stroke-width="1.2" stroke-linejoin="round">
+            <path d="M169 421V274l44-17 42 23v141" fill="#718879"/><path d="M213 257v164M169 298l44-15 42 21M179 316v80m13-87v86m33-90v99m15-91v90" opacity=".55"/>
+            <path d="M261 453V215l40-23 36 27v234" fill="#d0c5a2"/><path d="M301 192v261M270 236l22-12v210m20-204 16 11v190" stroke="#537365"/><path d="M301 191v-31"/>
+            <path d="M345 477V298l56-20 32 22v177" fill="#869783"/><path d="M401 278v199M355 319v132m12-137v142m13-147v143m31-135v128m11-121v125" opacity=".6"/>
+            <path d="M444 468V360l39-13 32 18v103" fill="#b9b99a"/><path d="M483 347v121M452 383h23m-23 16h23m-23 16h23m-23 16h23m15-42 18 6m-18 11 18 6m-18 11 18 6" stroke="#5b7866"/>
+            <path d="M101 465V362l31-15 25 18v100" fill="#b1b99a"/><path d="M132 347v118M109 379l15-7v70m17-62 8 6v58" stroke="#537365"/>
+            <path d="M218 491V369l44-13 43 20v115" fill="#32594c"/><path d="M262 356v135"/><path d="M230 389h21m-21 21h21m-21 21h21m-21 21h21m23-54 19 8m-19 14 19 8m-19 14 19 8" stroke="#d0ba80"/>
+          </g>
+          <g fill="#849c78"><circle cx="77" cy="481" r="19"/><circle cx="97" cy="488" r="13"/><circle cx="336" cy="486" r="16"/><circle cx="532" cy="471" r="17"/><circle cx="556" cy="478" r="13"/></g><g stroke="#d6cba8" stroke-width="1.5"><path d="M77 479v36m20-27v21m239-25v26m196-38v34m24-27v20"/><path d="M18 534l480-27M58 542l415-22" opacity=".35"/></g>
+          <path d="M409 549q51-56 104-51" fill="none" stroke="#e6dbb7" stroke-width="3"/><path d="M421 538v22m14-35v26m17-37v25m18-32v19m19-23v14" fill="none" stroke="#e6dbb7"/>
+          <g fill="#eee5cb" opacity=".8"><path d="M83 191q10-9 20 0 10-9 20 0" fill="none" stroke="currentColor"/><path d="M112 168q7-7 14 0 7-7 14 0" fill="none" stroke="currentColor"/></g>
+          <g fill="none" stroke="#d6cba8" stroke-width="1" opacity=".6"><path d="M560 259v44m-22-22h44"/><circle cx="560" cy="281" r="15"/></g><text x="556" y="250" fill="#d6cba8" font-size="10" font-family="serif">N</text>
+        </svg>
+        <div class="art-caption"><span class="art-caption-line"></span><span>不止一个目的地，<br>也是一种生活方式。</span><span class="art-index">栖<br>居</span></div>
+        <div class="art-label"><span class="label-dot"></span> YOUR NEXT CHAPTER STARTS HERE</div>
+      </div>
     </div>
+    <section class="intro-strip page-width" aria-labelledby="intro-title"><div><span class="section-number">01 / THE EXPLORATION</span><h2 id="intro-title">先认识自己，再认识城市。</h2></div><p>在 20 个生活场景中，梳理你在意的事。<br>用一份看得懂的偏好报告，展开对理想生活的想象。</p><button class="round-link" data-method aria-label="了解测试与评分方法">↗</button></section>
+    <section class="home-cities page-width" aria-labelledby="home-cities-title"><div class="section-heading"><div><span class="section-number">02 / A FEW POSSIBILITIES</span><h2 id="home-cities-title">每座城，都有自己的生活提案。</h2></div><a href="#cities" class="text-link">浏览全部 20 座城市 →</a></div><div id="home-city-grid" class="home-city-grid"></div></section>
+    <div class="closing-note page-width"><span>「 理想的城市，藏在你喜欢的日常里。 」</span><small>生活偏好探索 · 非标准化心理测评</small></div>
+  </section>
+  <section id="quiz-view" class="view page-width quiz-layout" hidden aria-labelledby="question-title">
+    <aside class="quiz-sidebar"><span class="section-number">YOUR LIVING PORTRAIT</span><h2>一点一点，<br>拼出理想日常。</h2><p>没有标准答案。<br>选出最符合你当下感受的一项。</p><ol id="chapter-list" class="chapter-list"></ol><div class="save-note"><span class="label-dot"></span><span id="save-status">进度自动保存在本机</span></div><button class="text-link" id="leave-quiz">← 暂存并返回首页</button></aside>
+    <div class="quiz-main"><div class="quiz-meta"><span id="chapter-eyebrow"></span><span id="question-count"></span></div><div class="progress-track" role="progressbar" aria-label="答题进度" aria-valuemin="0" aria-valuemax="20" aria-valuenow="0"><div id="quiz-progress"></div></div><div id="question-body" class="question-body"><div class="question-scene" id="question-scene"></div><h1 id="question-title" tabindex="-1"></h1><p id="question-subtitle"></p><fieldset id="answer-options"><legend class="sr-only">请选择符合程度</legend></fieldset></div><div class="quiz-controls"><button class="button secondary" id="previous-question">← 上一题</button><span class="keyboard-hint">按 1–5 选择 · Enter 继续</span><button class="button primary" id="next-question" disabled>下一题 <span>→</span></button></div><p class="quiz-footnote">你可以随时返回修改；结果只根据已完成的答案计算。</p></div>
+  </section>
+  <section id="result-view" class="view page-width result-view" hidden aria-labelledby="report-title"><div id="result-content"></div></section>
+  <section id="atlas-view" class="view page-width atlas-view" hidden aria-labelledby="atlas-title"><div class="atlas-heading"><div><span class="section-number">THE CITY COLLECTION / 20 CITIES</span><h1 id="atlas-title">二十座城，<span class="serif-accent">二十种日常。</span></h1><p>在山海、人文与都市之间，发现你感兴趣的生活切面。</p></div><a class="text-link" href="#test">找到我的偏好 →</a></div><div class="atlas-controls"><div id="city-filters" class="filter-list" role="group" aria-label="城市类型筛选"></div><label class="search-box"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></svg><input id="city-search" type="search" placeholder="搜索城市或省份" aria-label="搜索城市或省份"></label></div><p id="city-count" class="atlas-count" aria-live="polite"></p><div id="atlas-grid" class="atlas-grid"></div><p class="atlas-disclaimer">城市画像由本项目主观设定，用于交互演示；不代表城市客观排名或实时宜居水平。</p></section>
+</main>
+<footer class="site-footer page-width"><a class="footer-brand" href="#home">栖城 <span>CITY ATLAS</span></a><p>从生活出发，让每一次向往都有迹可循。</p><button data-method>项目说明与评分方法 ↗</button></footer>
+<dialog id="method-dialog" aria-labelledby="method-title"><div class="dialog-top"><span class="section-number">BEHIND THE EXPERIENCE</span><button class="icon-button" data-close aria-label="关闭项目说明">×</button></div><h2 id="method-title">关于栖城</h2><p class="dialog-lead">一个从生活偏好出发的城市探索交互项目。</p><div class="method-section"><h3>为什么做这个测试？</h3><p>将“我想在哪里生活”转化成具体的日常选择，让使用者先梳理偏好，再了解城市。项目以清晰的交互、可视化与可解释的推荐为设计重点。</p></div><div class="method-section"><h3>五个维度，二十个场景</h3><p>都市活力、自然亲近、人文探索、海滨向往、生活留白各有 4 道题。每题按符合程度记为 0、25、50、75、100 分；同一维度取平均，形成五维偏好画像。各维度相互独立，不需要相加为 100。</p></div><div class="method-section"><h3>相似度如何计算？</h3><div class="formula">相似度 = 100 − √[Σ(个人维度分 − 城市维度分)² ÷ 5]</div><p>将个人画像与每座城市的五维设定值比较，按距离从小到大排序，展示前三座；同分按固定城市编号排序。相同答案始终得到相同结果，没有随机加分。相似度是模型内的距离指标，不是适合居住的概率。</p></div><div class="method-section"><h3>城市画像从哪里来？</h3><p>沿用原项目的 20 座候选城市；五维分值与生活描述由本项目主观编辑，均为演示设定，不是统计数据。可在城市详情中查看全部设定分值。本项目未接入实时房价、就业、气候或公共服务数据，也未开展量表信效度验证。</p></div><div class="method-section"><h3>隐私与使用范围</h3><p>无需姓名、生辰或联系方式。答案只通过浏览器本地存储保留，不上传服务器；分享文本与图片也不包含逐题答案。共用设备上可使用“清除记录”删除本机进度。本测试适合兴趣探索与项目展示，实际择城仍需结合预算、职业与实地体验。</p></div><div class="method-section"><h3>下一步可以怎样改进？</h3><p>引入可追溯的城市指标、增加个人约束与维度权重；通过用户访谈和问卷分析检验题目，再开展实际使用测试。当前版本不声称已经完成这些验证。</p></div><button class="button primary full-width" data-close>了解了，继续探索 <span>→</span></button></dialog>
+<dialog id="city-dialog" aria-labelledby="city-dialog-title"><div class="dialog-top"><span class="section-number">CITY FIELD NOTES</span><button class="icon-button" data-close aria-label="关闭城市详情">×</button></div><div id="city-dialog-content"></div></dialog>
+<dialog id="reset-dialog" aria-labelledby="reset-title"><div class="dialog-top"><span class="section-number">A NEW CHAPTER</span><button class="icon-button" data-close aria-label="取消">×</button></div><h2 id="reset-title">重新认识你的理想日常？</h2><p>将清除本机的答题进度和报告，开始一份新的探索。</p><div class="dialog-actions"><button class="button secondary" data-close>保留记录</button><button class="button primary" id="confirm-reset">清除并重新开始 →</button></div></dialog>
+<dialog id="share-dialog" aria-labelledby="share-title"><div class="dialog-top"><span class="section-number">SHARE YOUR CHAPTER</span><button class="icon-button" data-close aria-label="关闭分享内容">×</button></div><h2 id="share-title">分享你的城市探索</h2><p>可以长按或选中下方文字复制。</p><textarea id="share-text" rows="7" readonly aria-label="待分享的报告文字"></textarea><button class="button primary full-width" data-close>完成</button></dialog>
+<div id="toast" role="status" aria-live="polite"></div>
+<noscript><p class="noscript">请在浏览器中启用 JavaScript 以体验城市探索测试。</p></noscript>
+<script>(() => {
+  'use strict';
+  const VERSION = '2.0.0';
+  const STORAGE_KEY = 'city-atlas-v2';
+  const DIMENSIONS = [
+    { id: 'energy', name: '都市活力', chapter: '城市的能量', en: 'URBAN ENERGY', low: '偏好安静小城', high: '偏好丰富的都市生活' },
+    { id: 'nature', name: '自然亲近', chapter: '自然的半径', en: 'CLOSER TO NATURE', low: '自然环境不是首要考虑', high: '愿意让日常靠近山水' },
+    { id: 'culture', name: '人文探索', chapter: '人文的温度', en: 'CULTURAL CURIOSITY', low: '较少围绕文化活动安排生活', high: '偏爱有历史与艺术的日常' },
+    { id: 'coast', name: '海滨向往', chapter: '海岸的想象', en: 'A LIFE BY THE SEA', low: '是否临海并不重要', high: '期待经常接近大海' },
+    { id: 'slow', name: '生活留白', chapter: '日常的留白', en: 'ROOM TO BREATHE', low: '乐于保持紧凑充实的安排', high: '愿意为松弛与闲暇留出空间' }
+  ];
+  const QUESTIONS = [
+    ['下班以后', '即使结束了一天的工作，我仍期待城市里有丰富的活动可以参加。', '想象一场临时起意的演出、展览或朋友聚会。'],
+    ['生活半径', '比起选择少而安静的小城，我更喜欢商业、活动和服务都很丰富的大城市。', '不考虑旅行的新鲜感，想象你长期生活的地方。'],
+    ['工作日常', '我愿意接受更快的城市节奏，换取更多接触新事物和职业机会的可能。', '这里询问你的偏好，不预设任何职业或人生阶段。'],
+    ['城市夜色', '灯火通明的街区和繁忙的城市天际线，会让我感到有活力。', '想象一座你愿意在夜晚散步的城市。'],
+    ['周末清晨', '有空的时候，我更想去山林、湖边或绿地，而不是一直待在室内。', '按你实际愿意做的事选择，不必选择“应该做”的事。'],
+    ['一扇窗外', '住处附近有可以经常散步的公园或自然空间，对我很重要。', '关注能融入日常的环境，而不只是远方的景点。'],
+    ['休息方式', '当我感到疲惫时，亲近植物、山水或户外环境，是我喜欢的恢复方式。', '想想什么样的休息最能让你放松。'],
+    ['生活取舍', '如果能更方便地接近自然，我愿意少一些购物和娱乐的选择。', '把这当作一个偏好取舍，不必考虑具体房源。'],
+    ['一条老街', '我愿意花一个下午，慢慢走过老街、历史建筑或传统街区。', '不需要了解很多历史，只看你是否享受这种体验。'],
+    ['日常滋养', '博物馆、书店、剧场或艺术展，是我想经常接触的生活内容。', '想象这些场所在你的日常生活中所占的位置。'],
+    ['认识一座城', '当地的故事、工艺、建筑和生活传统，会增加我对一座城市的好感。', '关注文化带来的吸引力，而不是城市的知名度。'],
+    ['有空的时候', '比起只追逐新潮，我也很享受在旧事物中发现新的细节。', '例如一座园林、一间老店，或者一本旧书。'],
+    ['向海的一天', '如果可以选择，我希望平常就能去海边，而不只是偶尔度假。', '把想象从几天的旅行，延伸到长期生活。'],
+    ['生活背景', '海风、海岸线和海上的光，会明显增加我对一个地方的向往。', '只回答它们对你的吸引程度。'],
+    ['户外计划', '沿海散步、看海或海边活动，是我愿意反复安排的休闲方式。', '不需要擅长游泳或水上运动。'],
+    ['目的地选择', '两座其他条件相近的城市里，临海会成为我优先考虑的理由。', '想象临海带来的加分，是否足以影响你的选择。'],
+    ['下班之后', '我希望生活里有一段不被工作或社交占满的完整时间。', '这里的“留白”也可以用于家人、爱好或独处。'],
+    ['周末节奏', '没有密集的计划，只是散步、做饭或休息，也能让我觉得周末很充实。', '想象一个没有必须完成任务的普通周末。'],
+    ['日常尺度', '我更喜欢可以慢下来、反复熟悉身边小店与街巷的生活节奏。', '关注你享受的节奏，而不评价哪一种生活更好。'],
+    ['理想的一天', '如果需要取舍，我愿意减少一些热闹与机会，换取更多闲暇和从容。', '最后一题。按你现在最真实的想法选择。']
+  ].map((q, i) => ({ id: i + 1, dimension: Math.floor(i / 4), scene: q[0], title: q[1], hint: q[2] }));
+  // All city vectors below are authored demo settings, not measured city indicators.
+  // Vector order: urban energy, nature, culture, coast, slow living; each 0–100.
+  const CITIES = [
+    ['beijing', '北京', 'BEIJING', '北京', 0, [95, 45, 95, 0, 30], '让历史与当下，在同一条街相遇。', '从胡同到展馆，从公园到剧场，把对人文与都市生活的兴趣，放进一段有层次的城市日常。', ['胡同漫步', '展馆时光', '都市人文'], '先确认自己对通勤距离、居住支出与紧凑节奏的接受程度。'],
+    ['shanghai', '上海', 'SHANGHAI', '上海', 0, [100, 35, 80, 45, 25], '在街角与天际线之间，发现新鲜。', '沿着城市街区散步，在建筑、展览与咖啡馆之间切换；想象一段内容丰富、选择多样的都市生活。', ['街区探索', '城市天际线', '多元日常'], '临海城市的生活感受不等于随时到达沙滩，建议实地确认居住与休闲半径。'],
+    ['shenzhen', '深圳', 'SHENZHEN', '广东', 0, [100, 60, 45, 70, 25], '向前的步伐，也可以向海。', '把现代街区、公园和海岸放在同一张生活地图里；适合用来想象都市能量与户外时间的组合。', ['现代街区', '公园漫步', '向海而行'], '都市节奏与海边休闲之间仍有距离，建议结合工作地点和通勤安排考虑。'],
+    ['guangzhou', '广州', 'GUANGZHOU', '广东', 0, [90, 45, 75, 20, 45], '把城市烟火，过成有滋味的日常。', '在骑楼街巷里走走，为一顿早茶留出时间；从熟悉的市井细节里，发现大城市的生活层次。', ['早茶时光', '骑楼街巷', '城市烟火'], '先了解自己的气候适应情况，并实地体验不同街区的生活节奏。'],
+    ['chengdu', '成都', 'CHENGDU', '四川', 1, [75, 70, 75, 0, 80], '在热闹与闲适之间，给生活留一席茶。', '公园、街巷、茶馆与周边山野，可以成为认识成都的不同入口；把热闹和放松都写进日常提案。', ['茶馆一隅', '公园日常', '街巷烟火'], '“慢生活”是探索视角，实际工作与通勤节奏仍取决于个人安排。'],
+    ['kunming', '昆明', 'KUNMING', '云南', 1, [50, 90, 55, 0, 85], '把一段日常，留给湖畔与草木。', '在翠湖、滇池与城市街巷之间，想象一个愿意常常走向户外、留意植物与光线的生活版本。', ['湖畔散步', '草木之间', '户外时光'], '湖畔与海滨是不同的环境体验；选择前也要结合自己的职业需求。'],
+    ['guiyang', '贵阳', 'GUIYANG', '贵州', 1, [50, 90, 55, 0, 80], '在山地的起伏里，慢慢认识生活。', '让山地、城市公园与街边小吃，成为观察一座城市的线索；为自然亲近和日常探索留出位置。', ['山地城市', '公园散步', '街头小吃'], '建议亲自感受坡地出行和季节变化，确认是否符合你的居住习惯。'],
+    ['chongqing', '重庆', 'CHONGQING', '重庆', 1, [85, 70, 65, 0, 45], '沿着山城的台阶，走向另一重风景。', '江岸、坡道、桥梁和街巷交织在一起；把城市探索变成一段有高低起伏、也有烟火气的日常。', ['两江夜色', '山城街巷', '立体日常'], '山地出行、夏季天气与通勤线路，都值得在实际生活前亲自体验。'],
+    ['hangzhou', '杭州', 'HANGZHOU', '浙江', 2, [80, 85, 90, 10, 60], '把湖山的诗意，写进平常的一天。', '从西湖边的一次散步，到运河畔的一段闲逛；在城市生活与山水人文之间，试着找到自己的平衡。', ['湖山之间', '运河漫步', '人文日常'], '景区体验和日常居住可能不同，建议同时考察工作半径与生活支出。'],
+    ['suzhou', '苏州', 'SUZHOU', '江苏', 2, [65, 65, 100, 5, 75], '在园林与街巷里，把日子读慢一点。', '把一场园林漫步、一段河畔闲逛和街区日常连接起来，想象一种愿意留心细节的人文生活。', ['园林细节', '河畔街巷', '江南人文'], '古城与新城区的生活体验不同，值得分开走访，再选择适合自己的区域。'],
+    ['nanjing', '南京', 'NANJING', '江苏', 2, [80, 65, 95, 0, 55], '让一座城的故事，陪你走过四季。', '从城墙、街巷到紫金山，把历史与自然放在相邻的生活章节里；适合以人文好奇心展开探索。', ['城墙漫步', '山林一日', '历史街巷'], '人文吸引力只是一个维度，也要了解自己对季节变化与出行距离的感受。'],
+    ['xian', '西安', "XI'AN", '陕西', 2, [75, 50, 100, 0, 55], '在城墙内外，读一座城的时间。', '城墙、博物馆与街巷小吃，构成认识西安的不同切面；为喜欢历史叙事的人打开一段日常想象。', ['城墙内外', '博物馆时光', '街巷寻味'], '历史旅行的体验不能代替长期生活，建议进一步了解通勤、气候与职业条件。'],
+    ['sanya', '三亚', 'SANYA', '海南', 3, [45, 85, 35, 100, 85], '让海，成为每天可以见面的邻居。', '用海岸散步、户外活动与不赶时间的一天，想象一种更常接近海洋的生活方式。', ['海岸日落', '户外时光', '向海生活'], '度假与常住需要不同的准备，建议进一步确认职业安排、生活支出和气候适应。'],
+    ['xiamen', '厦门', 'XIAMEN', '福建', 3, [65, 75, 80, 95, 75], '沿着海岸，把平常日子过成风景。', '在海边步道、老街和街角小店之间，想象一段既能亲近海，也能保留人文好奇心的日常。', ['海岸步道', '老街闲逛', '人文与海'], '旅游街区与居住街区各有不同，建议结合居住预算、工作地点和通勤再做判断。'],
+    ['qingdao', '青岛', 'QINGDAO', '山东', 3, [65, 70, 75, 100, 70], '在海风与街道之间，找到自己的步调。', '从海岸线走进有坡度的街区，在建筑与海景之间慢慢观察；把海滨和城市日常一起纳入想象。', ['海岸漫步', '街区建筑', '海风日常'], '海滨城市也有明显的季节差异，建议分别体验旅行和日常通勤的感受。'],
+    ['zhuhai', '珠海', 'ZHUHAI', '广东', 3, [55, 80, 45, 100, 85], '给海岸一段时间，给自己一点留白。', '以滨海步道和户外时间为起点，想象一个愿意减少日程密度、把注意力放回身边环境的生活版本。', ['滨海步道', '户外日常', '生活留白'], '较安静的生活想象也需要职业与社交支持，建议结合自己的工作安排评估。'],
+    ['changsha', '长沙', 'CHANGSHA', '湖南', 4, [80, 50, 70, 0, 65], '在街头的热闹里，找到自己的日常。', '沿着湘江走走，给街巷和小吃一些时间；想象一段带着市井热度，也能安排个人闲暇的生活。', ['湘江散步', '街巷寻味', '热闹日常'], '热闹与松弛并不总是同时出现，建议亲自体验不同街区与时段。'],
+    ['luoyang', '洛阳', 'LUOYANG', '河南', 4, [40, 55, 95, 0, 90], '在古都的时间里，留一段从容。', '把遗迹、博物馆与普通街巷连接起来，用更舒展的步调认识城市；适合想象人文兴趣与个人闲暇的组合。', ['古都故事', '博物馆时光', '从容日常'], '本项目的从容画像是主观设定，实际工作机会与生活条件还需要单独核实。'],
+    ['zhengzhou', '郑州', 'ZHENGZHOU', '河南', 4, [70, 40, 65, 0, 70], '在来来往往之间，安放平常的一天。', '从街区生活到周边的人文探索，把出行、工作和日常安排放在一起，寻找适合自己的生活尺度。', ['街区日常', '中原人文', '平常生活'], '先明确你的职业方向、居住区域与出行方式，再判断这种日常是否适合自己。'],
+    ['hefei', '合肥', 'HEFEI', '安徽', 4, [70, 55, 60, 0, 70], '在城市前行的同时，照顾好自己的步调。', '从公园、街区与日常小店出发，想象一个既保留都市活动，也能给个人生活留出空间的版本。', ['公园时光', '街区生活', '自己的步调'], '生活的松弛度取决于具体工作和住处，建议结合个人安排实地了解。']
+  ].map(c => ({ id: c[0], name: c[1], en: c[2], province: c[3], type: c[4], vector: c[5], slogan: c[6], description: c[7], tags: c[8], tradeoff: c[9] }));
+  const TYPES = ['都市生活', '山水之间', '人文日常', '海滨生活', '生活留白'];
+  const LABELS = ['很不符合', '不太符合', '一般 / 不确定', '比较符合', '非常符合'];
+  const DETAILS = ['几乎不是我的偏好', '对我的吸引力较小', '暂时没有明显倾向', '与我的想法接近', '这正是我向往的'];
+  const $ = s => document.querySelector(s);
+  const $$ = s => Array.from(document.querySelectorAll(s));
+  const blankState = () => ({ version: VERSION, answers: Array(20).fill(null), index: 0, completedAt: null });
+  let storageAvailable = true;
+  let state = readState();
+  let activeView = 'home';
+  let activeFilter = -1;
+  let toastTimer;
 
-    <script>
-        const cityTypes = {
-            modern: {
-                name: "现代都市型",
-                emoji: "🌆",
-                tags: ["事业心强", "追求卓越", "热爱时尚", "社交达人"],
-                compatibility: ["交通便捷", "商业发达", "就业机会多", "夜生活丰富"],
-                wuxing: "金",
-                cities: [
-                    { name: "北京", analysis: "北京，中国的首都，一座融合了古老历史与现代繁华的城市。这里汇聚了全国最顶尖的教育、医疗和文化资源，是追求事业成功、实现人生抱负的理想之地。北京的大气磅礴、庄重典雅，与您的性格相得益彰。在这里生活，您将感受到历史的厚重与时代的脉搏，成就非凡人生。" },
-                    { name: "上海", analysis: "上海，这座国际化大都市，是中国经济最发达、最具活力的城市之一。陆家嘴金融中心、外滩万国建筑群彰显着财富与实力。这里汇聚了世界500强企业和全球顶尖人才，是追求商业成功、实现财富梦想的最佳舞台。上海的精致与繁华，与您的追求完美契合。" },
-                    { name: "深圳", analysis: "深圳，中国改革开放的前沿阵地，一座充满创新与活力的年轻城市。以高速的经济发展、先进的科技产业和开放的创业环境著称。这里是中国的硅谷，汇聚了华为、腾讯等世界级科技企业。深圳的创新精神和务实作风，与您的锐意进取不谋而合。" },
-                    { name: "广州", analysis: "广州，千年商都，中国南方的经济中心。繁华的北京路、现代化的珠江新城，展现着这座城市的独特魅力。美食之都、商贸中心，广州的包容与活力，与您追求事业成功的决心完美匹配。" }
-                ]
-            },
-            nature: {
-                name: "山水宜居型",
-                emoji: "🌲",
-                tags: ["热爱自然", "追求舒适", "喜欢美食", "乐观豁达"],
-                compatibility: ["气候宜人", "绿化覆盖率高", "生活节奏慢", "美食丰富"],
-                wuxing: "木",
-                cities: [
-                    { name: "成都", analysis: "成都，一座来了就不想走的城市。这里气候温润、植被丰茂，周边青城山、都江堰等自然景观美不胜收。生活节奏悠闲，茶文化、美食文化浓郁，人们热情好客、乐观豁达。成都的安逸与包容，与您热爱自然的性格完美契合。在这里，您将感受到人与自然的和谐共处，享受慢生活的美好。" },
-                    { name: "昆明", analysis: "昆明，四季如春的春城。气候宜人、鲜花常年盛开，滇池、翠湖等自然景观令人陶醉。生态环境优美，生活节奏舒缓，是中国最宜居的城市之一。昆明的平和与自然，与您追求舒适生活的愿望完美匹配。" },
-                    { name: "贵阳", analysis: "贵阳，中国避暑之都。森林覆盖率高，气候凉爽宜人，花溪公园、黔灵山等自然景观独具特色。生活成本适中，人民热情淳朴，是追求自然生活的理想之地。贵阳的绿意盎然，与您热爱大自然的天性十分契合。" },
-                    { name: "重庆", analysis: "重庆，山水之城，魔幻之都。两江交汇、群山环抱，独特的地理风貌造就了这座城市的魅力。火锅文化、夜景璀璨，重庆的热情与活力，与您热爱生活的态度完美契合。" }
-                ]
-            },
-            culture: {
-                name: "文化底蕴型",
-                emoji: "🏮",
-                tags: ["文化修养", "热爱艺术", "追求品质", "情感丰富"],
-                compatibility: ["历史悠久", "文化氛围浓厚", "教育资源丰富", "艺术活动多"],
-                wuxing: "水",
-                cities: [
-                    { name: "杭州", analysis: "杭州，一座充满诗意的江南名城。坐拥西湖美景，运河穿城而过，灵隐寺禅意悠长。文化底蕴深厚，文人墨客辈出，西湖龙井清香四溢。杭州的雅致与诗意，与您追求精神富足的性格完美契合。在这里生活，您将感受到江南水乡的柔情与诗意，心灵得到净化与升华。" },
-                    { name: "苏州", analysis: "苏州，人间天堂。河道纵横、园林精巧，拙政园、留园等古典园林彰显着江南水乡的韵味。文化昌盛、人才辈出，是中国传统文化的瑰宝之地。苏州的精致典雅，与您对品质生活的追求十分匹配。" },
-                    { name: "南京", analysis: "南京，六朝古都。长江穿城而过，秦淮河流淌千年，紫金山郁郁葱葱。历史厚重、文化灿烂，是感受中华文明传承的理想之地。南京的文化底蕴，与您热爱传统文化的情怀完美契合。" },
-                    { name: "西安", analysis: "西安，十三朝古都。兵马俑震撼世界，大雁塔巍峨耸立，大唐不夜城灯火辉煌。历史厚重、文化灿烂，是感受中华文明辉煌的绝佳之地。西安的厚重与包容，与您追求精神富足的愿望完美契合。" }
-                ]
-            },
-            coastal: {
-                name: "海滨度假型",
-                emoji: "🌊",
-                tags: ["热爱自由", "浪漫情怀", "喜欢运动", "阳光开朗"],
-                compatibility: ["海滨城市", "气候温暖", "风景优美", "度假氛围"],
-                wuxing: "火",
-                cities: [
-                    { name: "三亚", analysis: "三亚，中国最南端的热带海滨城市。拥有令人向往的碧海蓝天和金色沙滩。热带风情、悠闲生活和美丽海景将是您的理想归宿。在这里，您可以每天享受阳光沙滩，体验潜水冲浪的刺激，品尝新鲜美味的海鲜。三亚的热情与活力，与您追求自由浪漫的性格完美契合。" },
-                    { name: "厦门", analysis: "厦门，海上花园。鼓浪屿风情万种，环岛路风景如画，厦门大学书香四溢。气候温暖湿润，生活悠闲自在，是享受海滨城市生活的绝佳选择。厦门的浪漫与惬意，与您热爱大海的天性十分匹配。" },
-                    { name: "青岛", analysis: "青岛，帆船之都。红瓦绿树、碧海蓝天，八大关风情独特，啤酒文化浓郁。气候宜人、风景优美，是避暑度假的理想之地。青岛的海洋气息，与您阳光开朗的性格完美契合。" },
-                    { name: "珠海", analysis: "珠海，百岛之市。蓝天白云、碧海沙滩，横琴新区充满活力。宜居宜业、环境优美，是追求高品质海滨生活的理想之地。珠海的宁静与美丽，与您热爱自由的天性十分匹配。" }
-                ]
-            },
-            peaceful: {
-                name: "慢生活型",
-                emoji: "🍵",
-                tags: ["重视家庭", "追求宁静", "心态平和", "享受生活"],
-                compatibility: ["生活节奏慢", "幸福感高", "消费适中", "邻里和睦"],
-                wuxing: "土",
-                cities: [
-                    { name: "长沙", analysis: "长沙，娱乐之都。娱乐产业发达，湖南卫视引领潮流，美食文化丰富。夜生活丰富多彩，人民热情奔放，是享受快乐生活的理想之地。长沙的活力与热情，与您享受生活的态度完美契合。" },
-                    { name: "洛阳", analysis: "洛阳，九朝古都。龙门石窟震撼人心，牡丹花城名满天下，白马寺钟声悠远。历史悠久、文化灿烂，是感受中华传统文化的圣地。洛阳的平和与底蕴，与您注重家庭幸福的价值观十分匹配。" },
-                    { name: "郑州", analysis: "郑州，中原腹地。交通枢纽、历史悠久，嵩山少林名扬天下。生活节奏适中，人民朴实热情，是追求安稳生活的理想之地。郑州的包容与稳重，与您追求宁静的愿望完美契合。" },
-                    { name: "合肥", analysis: "合肥，科创之城。科教资源丰富，城市发展迅速，生活成本适中。环境优美、交通便利，是追求安稳生活的理想之地。合肥的务实与创新，与您注重家庭的价值观十分匹配。" }
-                ]
-            }
-        };
-
-        const questions = [
-            { question: "周末你更喜欢怎么度过？", options: [
-                { text: "逛商场、看电影、打卡网红店", type: "modern" },
-                { text: "徒步爬山、公园野餐、亲近自然", type: "nature" },
-                { text: "宅在家里看书、追剧、休息", type: "peaceful" },
-                { text: "海边漫步、享受阳光沙滩", type: "coastal" }
-            ]},
-            { question: "你最喜欢哪种美食？", options: [
-                { text: "精致西餐、创意料理", type: "modern" },
-                { text: "川湘麻辣、地道小吃", type: "nature" },
-                { text: "清淡杭帮菜、江南点心", type: "culture" },
-                { text: "海鲜盛宴、烧烤撸串", type: "coastal" },
-                { text: "家常小炒、温馨家宴", type: "peaceful" }
-            ]},
-            { question: "你理想中的居住环境是？", options: [
-                { text: "高层公寓，俯瞰城市夜景", type: "modern" },
-                { text: "花园洋房，绿树成荫", type: "nature" },
-                { text: "江南水乡，小桥流水", type: "culture" },
-                { text: "温馨小家，邻里和睦", type: "peaceful" },
-                { text: "海景别墅，面朝大海", type: "coastal" }
-            ]},
-            { question: "你更喜欢哪种天气？", options: [
-                { text: "四季分明，春秋宜人", type: "culture" },
-                { text: "温暖湿润，全年如春", type: "nature" },
-                { text: "阳光明媚，海风习习", type: "coastal" },
-                { text: "凉爽舒适，蓝天白云", type: "peaceful" },
-                { text: "冬暖夏凉，气候宜人", type: "modern" }
-            ]},
-            { question: "通勤时你更在意什么？", options: [
-                { text: "地铁四通八达，快速便捷", type: "modern" },
-                { text: "步行可达，绿色出行", type: "nature" },
-                { text: "风景优美，边坐车边看景", type: "coastal" },
-                { text: "时间灵活，不用早起", type: "peaceful" },
-                { text: "交通顺畅，不堵车", type: "culture" }
-            ]},
-            { question: "你更看重城市的什么？", options: [
-                { text: "商业发达，购物便利", type: "modern" },
-                { text: "空气质量好，生态环境佳", type: "nature" },
-                { text: "文化底蕴深厚，历史悠久", type: "culture" },
-                { text: "生活节奏慢，幸福感高", type: "peaceful" },
-                { text: "风景优美，适合旅游", type: "coastal" }
-            ]},
-            { question: "你喜欢哪种夜生活？", options: [
-                { text: "酒吧蹦迪、KTV狂欢", type: "modern" },
-                { text: "夜市小吃、街头表演", type: "nature" },
-                { text: "夜游运河、灯光秀", type: "culture" },
-                { text: "在家陪伴家人", type: "peaceful" },
-                { text: "海边烧烤、篝火晚会", type: "coastal" }
-            ]},
-            { question: "你更喜欢哪种自然景观？", options: [
-                { text: "高楼大厦组成的城市天际线", type: "modern" },
-                { text: "青山绿水、森林氧吧", type: "nature" },
-                { text: "古老建筑、园林庭院", type: "culture" },
-                { text: "碧海蓝天、沙滩海浪", type: "coastal" },
-                { text: "田园风光、乡村美景", type: "peaceful" }
-            ]},
-            { question: "你更适合哪种工作氛围？", options: [
-                { text: "快节奏的互联网大厂", type: "modern" },
-                { text: "悠闲的文创工作室", type: "culture" },
-                { text: "稳定的事业单位", type: "peaceful" },
-                { text: "充满活力的创业团队", type: "nature" },
-                { text: "自由的远程办公", type: "coastal" }
-            ]},
-            { question: "你理想中的周末出游是？", options: [
-                { text: "周边城市一日游", type: "modern" },
-                { text: "山区露营、徒步", type: "nature" },
-                { text: "古镇漫游、文化之旅", type: "culture" },
-                { text: "海岛度假、沙滩休闲", type: "coastal" },
-                { text: "在家休息、陪伴家人", type: "peaceful" }
-            ]},
-            { question: "你更看重孩子的什么教育？", options: [
-                { text: "顶尖名校、国际教育", type: "modern" },
-                { text: "自然教育、户外活动", type: "nature" },
-                { text: "传统文化、艺术熏陶", type: "culture" },
-                { text: "快乐成长、轻松学习", type: "peaceful" },
-                { text: "综合素质、全面发展", type: "coastal" }
-            ]},
-            { question: "你喜欢养什么宠物？", options: [
-                { text: "品种名贵的宠物猫犬", type: "modern" },
-                { text: "狗狗，喜欢带它去户外", type: "nature" },
-                { text: "金鱼、乌龟等水族", type: "coastal" },
-                { text: "鹦鹉、仓鼠等小宠", type: "culture" },
-                { text: "不养宠物，更喜欢植物", type: "peaceful" }
-            ]},
-            { question: "你更喜欢哪种购物方式？", options: [
-                { text: "高端商场、奢侈品店", type: "modern" },
-                { text: "特色小店、文创市集", type: "culture" },
-                { text: "电商购物、送货上门", type: "peaceful" },
-                { text: "新鲜海鲜、特色市集", type: "coastal" },
-                { text: "超市采购、日常用品", type: "nature" }
-            ]},
-            { question: "你更在意城市的什么医疗资源？", options: [
-                { text: "顶级三甲医院、先进设备", type: "modern" },
-                { text: "空气好、自然养生", type: "nature" },
-                { text: "中医理疗、养生保健", type: "culture" },
-                { text: "温泉疗养、海滨康复", type: "coastal" },
-                { text: "社区医疗、方便快捷", type: "peaceful" }
-            ]},
-            { question: "你更喜欢哪种节日氛围？", options: [
-                { text: "跨年倒计时、烟花表演", type: "modern" },
-                { text: "春节庙会、传统民俗", type: "culture" },
-                { text: "赏花灯、端午龙舟", type: "nature" },
-                { text: "家庭聚餐、温馨团聚", type: "peaceful" },
-                { text: "海边派对、沙滩狂欢", type: "coastal" }
-            ]},
-            { question: "你理想中的交通方式是？", options: [
-                { text: "地铁+网约车", type: "modern" },
-                { text: "公交+步行", type: "nature" },
-                { text: "轮渡+观光巴士", type: "coastal" },
-                { text: "自驾+骑行", type: "peaceful" },
-                { text: "高铁出行、快速便捷", type: "culture" }
-            ]},
-            { question: "你更喜欢哪种休闲运动？", options: [
-                { text: "健身房撸铁、室内游泳", type: "modern" },
-                { text: "登山、徒步、骑行", type: "nature" },
-                { text: "太极、瑜伽、广场舞", type: "culture" },
-                { text: "冲浪、潜水、沙滩排球", type: "coastal" },
-                { text: "散步、慢跑、羽毛球", type: "peaceful" }
-            ]},
-            { question: "你更喜欢哪种咖啡馆氛围？", options: [
-                { text: "连锁品牌、商务风格", type: "modern" },
-                { text: "文艺小店、书香气息", type: "culture" },
-                { text: "露天咖啡座、花园式", type: "nature" },
-                { text: "海景咖啡、面朝大海", type: "coastal" },
-                { text: "温馨小店、家庭式", type: "peaceful" }
-            ]},
-            { question: "你对房价的接受程度是？", options: [
-                { text: "愿意为好地段付出高价", type: "modern" },
-                { text: "性价比优先，宜居即可", type: "peaceful" },
-                { text: "环境好最重要，价格其次", type: "nature" },
-                { text: "海滨城市溢价可接受", type: "coastal" },
-                { text: "文化氛围好，价格适中", type: "culture" }
-            ]},
-            { question: "如果可以选择，你最想拥有什么？", options: [
-                { text: "事业成功、财富自由", type: "modern" },
-                { text: "健康身体、幸福家庭", type: "peaceful" },
-                { text: "艺术修养、精神富足", type: "culture" },
-                { text: "亲近自然、自由生活", type: "nature" },
-                { text: "浪漫爱情、美好生活", type: "coastal" }
-            ]}
-        ];
-
-        let currentQuestion = 0;
-        let scores = { modern: 0, nature: 0, culture: 0, coastal: 0, peaceful: 0 };
-        let selectedOption = null;
-        let selectedTimeSlot = null;
-        let userWuxing = null;
-
-        function initFloatingBg() {
-            const bg = document.getElementById('floating-bg');
-            const items = ['🌆', '🌊', '🏙️', '🌴', '🏞️', '⛩️', '🌉', '🌸', '🌃', '🌁'];
-            items.forEach((item, i) => {
-                const el = document.createElement('div');
-                el.className = 'float-item';
-                el.textContent = item;
-                el.style.left = Math.random() * 100 + '%';
-                el.style.top = Math.random() * 100 + '%';
-                el.style.animationDelay = Math.random() * 5 + 's';
-                el.style.fontSize = (20 + Math.random() * 20) + 'px';
-                bg.appendChild(el);
-            });
-        }
-
-        function initYearSelect() {
-            const yearSelect = document.getElementById('birth-year');
-            const currentYear = new Date().getFullYear();
-            for (let year = currentYear; year >= 1940; year--) {
-                const option = document.createElement('option');
-                option.value = year;
-                option.textContent = year + '年';
-                yearSelect.appendChild(option);
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            initYearSelect();
-            initFloatingBg();
-        });
-
-        function startQuiz() {
-            currentQuestion = 0;
-            scores = { modern: 0, nature: 0, culture: 0, coastal: 0, peaceful: 0 };
-            selectedOption = null;
-            selectedTimeSlot = null;
-            userWuxing = null;
-            switchPage('cover', 'quiz');
-            renderQuestion();
-        }
-
-        function switchPage(from, to) {
-            document.getElementById(from).classList.remove('active');
-            setTimeout(() => {
-                document.getElementById(to).classList.add('active');
-            }, 300);
-        }
-
-        function renderQuestion() {
-            const question = questions[currentQuestion];
-            const container = document.getElementById('question-container');
-            
-            document.getElementById('current-question').textContent = currentQuestion + 1;
-            document.getElementById('progress-fill').style.width = `${((currentQuestion + 1) / questions.length) * 100}%`;
-
-            let optionsHtml = '';
-            question.options.forEach((option, index) => {
-                const letters = ['A', 'B', 'C', 'D', 'E'];
-                optionsHtml += `
-                    <li class="option-item" onclick="selectOption(${index}, this)" id="option-${index}">
-                        <span class="option-letter">${letters[index]}</span>
-                        <span class="option-text">${option.text}</span>
-                    </li>
-                `;
-            });
-
-            container.innerHTML = `
-                <span class="question-number">${currentQuestion + 1}</span>
-                <h2 class="question-text">${question.question}</h2>
-                <ul class="options-list">${optionsHtml}</ul>
-            `;
-            
-            selectedOption = null;
-        }
-
-        function selectOption(index, element) {
-            if (selectedOption !== null) return;
-            
-            selectedOption = index;
-            createRipple(element);
-            element.classList.add('selected');
-            
-            setTimeout(() => {
-                calculateScore(index);
-                nextQuestion();
-            }, 500);
-        }
-
-        function createRipple(element) {
-            const ripple = document.createElement('span');
-            ripple.className = 'ripple';
-            const rect = element.getBoundingClientRect();
-            const size = Math.max(rect.width, rect.height);
-            ripple.style.width = ripple.style.height = size + 'px';
-            ripple.style.left = (rect.width / 2 - size / 2) + 'px';
-            ripple.style.top = (rect.height / 2 - size / 2) + 'px';
-            element.appendChild(ripple);
-            setTimeout(() => ripple.remove(), 600);
-        }
-
-        function calculateScore(index) {
-            const question = questions[currentQuestion];
-            const option = question.options[index];
-            scores[option.type] += 10;
-        }
-
-        function nextQuestion() {
-            currentQuestion++;
-            if (currentQuestion < questions.length) {
-                renderQuestion();
-            } else {
-                switchPage('quiz', 'birth');
-            }
-        }
-
-        function selectTimeSlot(slot) {
-            selectedTimeSlot = slot;
-            document.getElementById('slot-morning').classList.remove('selected');
-            document.getElementById('slot-noon').classList.remove('selected');
-            document.getElementById('slot-afternoon').classList.remove('selected');
-            document.getElementById('slot-evening').classList.remove('selected');
-            document.getElementById(`slot-${slot}`).classList.add('selected');
-        }
-
-        function calculateWuxing(birthYear, birthMonth, timeSlot) {
-            const yearWuxingMap = {
-                '0': '金', '1': '木', '2': '水', '3': '火', '4': '土',
-                '5': '金', '6': '木', '7': '水', '8': '火', '9': '土'
-            };
-            
-            const monthWuxingMap = {
-                '1': '木', '2': '木', '3': '土', '4': '火', '5': '火',
-                '6': '土', '7': '金', '8': '金', '9': '土', '10': '水',
-                '11': '水', '12': '土'
-            };
-            
-            const timeSlotWuxingMap = {
-                'morning': '木', 'noon': '火', 'afternoon': '火', 'evening': '土'
-            };
-            
-            const yearLastDigit = birthYear.toString().slice(-1);
-            const yearWuxing = yearWuxingMap[yearLastDigit];
-            const monthWuxing = monthWuxingMap[birthMonth];
-            const timeWuxing = timeSlotWuxingMap[timeSlot];
-            
-            const wuxingCounts = { '金': 0, '木': 0, '水': 0, '火': 0, '土': 0 };
-            wuxingCounts[yearWuxing]++;
-            wuxingCounts[monthWuxing]++;
-            wuxingCounts[timeWuxing]++;
-            
-            let maxCount = 0;
-            let dominantWuxing = '土';
-            Object.keys(wuxingCounts).forEach(key => {
-                if (wuxingCounts[key] > maxCount) {
-                    maxCount = wuxingCounts[key];
-                    dominantWuxing = key;
-                }
-            });
-            
-            return dominantWuxing;
-        }
-
-        function calculateResult() {
-            const birthYear = document.getElementById('birth-year').value;
-            const birthMonth = document.getElementById('birth-month').value;
-            
-            if (!birthYear) {
-                alert('请选择出生年份');
-                return;
-            }
-            if (!birthMonth) {
-                alert('请选择出生月份');
-                return;
-            }
-            if (!selectedTimeSlot) {
-                alert('请选择大致出生时段');
-                return;
-            }
-
-            userWuxing = calculateWuxing(birthYear, birthMonth, selectedTimeSlot);
-            
-            showResult();
-        }
-
-        function drawRadarChart(data) {
-            const canvas = document.getElementById('radar-chart');
-            const ctx = canvas.getContext('2d');
-            const centerX = canvas.width / 2;
-            const centerY = canvas.height / 2;
-            const radius = 100;
-            const labels = ['现代都市', '山水宜居', '文化底蕴', '海滨度假', '慢生活'];
-            const colors = ['#4A90D9', '#67C23A', '#E6A23C', '#F56C6C', '#909399'];
-            
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            const levels = 5;
-            for (let level = levels; level > 0; level--) {
-                const levelRadius = (radius / levels) * level;
-                ctx.beginPath();
-                for (let i = 0; i < labels.length; i++) {
-                    const angle = (Math.PI * 2 * i) / labels.length - Math.PI / 2;
-                    const x = centerX + levelRadius * Math.cos(angle);
-                    const y = centerY + levelRadius * Math.sin(angle);
-                    if (i === 0) ctx.moveTo(x, y);
-                    else ctx.lineTo(x, y);
-                }
-                ctx.closePath();
-                ctx.strokeStyle = 'rgba(74, 144, 217, 0.1)';
-                ctx.lineWidth = 1;
-                ctx.stroke();
-                ctx.fillStyle = level % 2 === 0 ? 'rgba(74, 144, 217, 0.02)' : 'rgba(74, 144, 217, 0.05)';
-                ctx.fill();
-            }
-            
-            for (let i = 0; i < labels.length; i++) {
-                const angle = (Math.PI * 2 * i) / labels.length - Math.PI / 2;
-                ctx.beginPath();
-                ctx.moveTo(centerX, centerY);
-                ctx.lineTo(centerX + radius * Math.cos(angle), centerY + radius * Math.sin(angle));
-                ctx.strokeStyle = 'rgba(74, 144, 217, 0.1)';
-                ctx.lineWidth = 1;
-                ctx.stroke();
-            }
-            
-            ctx.beginPath();
-            for (let i = 0; i < labels.length; i++) {
-                const angle = (Math.PI * 2 * i) / labels.length - Math.PI / 2;
-                const value = data[i] / 100;
-                const x = centerX + radius * value * Math.cos(angle);
-                const y = centerY + radius * value * Math.sin(angle);
-                if (i === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
-            }
-            ctx.closePath();
-            ctx.fillStyle = 'rgba(74, 144, 217, 0.2)';
-            ctx.fill();
-            ctx.strokeStyle = '#4A90D9';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            
-            for (let i = 0; i < labels.length; i++) {
-                const angle = (Math.PI * 2 * i) / labels.length - Math.PI / 2;
-                const value = data[i] / 100;
-                const x = centerX + radius * value * Math.cos(angle);
-                const y = centerY + radius * value * Math.sin(angle);
-                
-                ctx.beginPath();
-                ctx.arc(x, y, 4, 0, Math.PI * 2);
-                ctx.fillStyle = '#4A90D9';
-                ctx.fill();
-                
-                ctx.beginPath();
-                ctx.arc(x, y, 6, 0, Math.PI * 2);
-                ctx.strokeStyle = '#4A90D9';
-                ctx.lineWidth = 1;
-                ctx.stroke();
-            }
-            
-            ctx.font = '12px PingFang SC, Microsoft YaHei, sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            
-            for (let i = 0; i < labels.length; i++) {
-                const angle = (Math.PI * 2 * i) / labels.length - Math.PI / 2;
-                const labelRadius = radius + 25;
-                const x = centerX + labelRadius * Math.cos(angle);
-                const y = centerY + labelRadius * Math.sin(angle);
-                ctx.fillStyle = '#6B7280';
-                ctx.fillText(labels[i], x, y);
-            }
-            
-            for (let i = 0; i < labels.length; i++) {
-                const angle = (Math.PI * 2 * i) / labels.length - Math.PI / 2;
-                const value = data[i] / 100;
-                const x = centerX + radius * value * Math.cos(angle);
-                const y = centerY + radius * value * Math.sin(angle);
-                
-                ctx.font = 'bold 11px PingFang SC, Microsoft YaHei, sans-serif';
-                ctx.fillStyle = '#4A90D9';
-                
-                let offsetY = -12;
-                if (y < centerY - 30) offsetY = -15;
-                else if (y > centerY + 30) offsetY = 18;
-                
-                ctx.fillText(data[i] + '%', x, y + offsetY);
-            }
-        }
-
-        function showResult() {
-            let maxScore = 0;
-            let resultType = 'modern';
-            
-            const wuxingBonus = {
-                '金': 'modern', '木': 'nature', '水': 'culture', 
-                '火': 'coastal', '土': 'peaceful'
-            };
-            
-            if (userWuxing && wuxingBonus[userWuxing]) {
-                scores[wuxingBonus[userWuxing]] += 15;
-            }
-            
-            Object.keys(scores).forEach(key => {
-                if (scores[key] > maxScore) {
-                    maxScore = scores[key];
-                    resultType = key;
-                }
-            });
-
-            const cityType = cityTypes[resultType];
-            const randomCity = cityType.cities[Math.floor(Math.random() * cityType.cities.length)];
-            const matchScore = Math.min(100, Math.round((maxScore / 215) * 100 + Math.random() * 5));
-
-            document.getElementById('result-emoji').textContent = cityType.emoji;
-            document.getElementById('result-city').textContent = randomCity.name;
-            document.getElementById('result-tag').textContent = cityType.name;
-            document.getElementById('match-score').textContent = matchScore + '%';
-            document.getElementById('result-analysis').textContent = randomCity.analysis;
-
-            const tagsHtml = cityType.tags.map(tag => `
-                <span class="personality-tag">${tag}</span>
-            `).join('');
-            document.getElementById('personality-tags').innerHTML = tagsHtml;
-
-            const compatibilityHtml = cityType.compatibility.map(item => `
-                <li class="compatibility-item">
-                    <span class="compatibility-check">✓</span>
-                    <span class="compatibility-text">${item}</span>
-                </li>
-            `).join('');
-            document.getElementById('compatibility-list').innerHTML = compatibilityHtml;
-
-            const wuxingRelations = {
-                '金': { desc: '金主杀伐果断，与您的决策能力相匹配' },
-                '木': { desc: '木主生机盎然，与您的活力充沛相契合' },
-                '水': { desc: '水主智慧通达，与您的聪颖睿智相呼应' },
-                '火': { desc: '火主热情活力，与您的积极向上相吻合' },
-                '土': { desc: '土主稳重守信，与您的踏实可靠相符合' }
-            };
-            
-            const userWuxingDesc = userWuxing ? wuxingRelations[userWuxing]?.desc || '五行相生相克，命运自有安排' : '五行相生相克，命运自有安排';
-            const cityWuxing = cityType.wuxing;
-            
-            document.getElementById('wuxing-content').textContent = `根据您的生辰信息，您的五行属性为【${userWuxing || '土'}】。${userWuxingDesc}。而${randomCity.name}的城市气质属【${cityWuxing}】，与您的属性${userWuxing === cityWuxing ? '完全契合，相辅相成' : '相生相合，相得益彰'}。这种冥冥之中的缘分，让这座城市成为您的理想宜居之地。`;
-            document.getElementById('wuxing-badge').textContent = `${userWuxing || '土'}属性匹配`;
-
-            const radarData = [
-                Math.min(100, Math.round((scores.modern / 215) * 100)),
-                Math.min(100, Math.round((scores.nature / 215) * 100)),
-                Math.min(100, Math.round((scores.culture / 215) * 100)),
-                Math.min(100, Math.round((scores.coastal / 215) * 100)),
-                Math.min(100, Math.round((scores.peaceful / 215) * 100))
-            ];
-            drawRadarChart(radarData);
-
-            switchPage('birth', 'result');
-        }
-
-        function shareToWechat() {
-            const city = document.getElementById('result-city').textContent;
-            const tag = document.getElementById('result-tag').textContent;
-            const score = document.getElementById('match-score').textContent;
-            const text = `我测出来最适合我的城市是【${city}】！${tag}，匹配度${score}！快来测测你的理想宜居地吧！`;
-            
-            if (navigator.share) {
-                navigator.share({ title: '宜居城市匹配测试', text: text, url: window.location.href });
-            } else {
-                copyToClipboard(text);
-                alert('已复制分享内容，快去微信粘贴给好友吧！');
-            }
-        }
-
-        function shareResult() {
-            const city = document.getElementById('result-city').textContent;
-            const tag = document.getElementById('result-tag').textContent;
-            const score = document.getElementById('match-score').textContent;
-            const text = `🏙️ 宜居城市匹配测试\n\n我的理想城市：${city}\n${tag}\n匹配度：${score}\n\n快来测测你的理想宜居地！\n${window.location.href}`;
-            
-            if (navigator.share) {
-                navigator.share({ title: '宜居城市匹配测试', text: text, url: window.location.href });
-            } else {
-                copyToClipboard(text);
-                alert('已复制分享内容，快去朋友圈分享吧！');
-            }
-        }
-
-        function copyToClipboard(text) {
-            const textarea = document.createElement('textarea');
-            textarea.value = text;
-            document.body.appendChild(textarea);
-            textarea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textarea);
-        }
-
-        function restartQuiz() {
-            selectedTimeSlot = null;
-            document.getElementById('birth-year').value = '';
-            document.getElementById('birth-month').value = '';
-            document.getElementById('slot-morning').classList.remove('selected');
-            document.getElementById('slot-noon').classList.remove('selected');
-            document.getElementById('slot-afternoon').classList.remove('selected');
-            document.getElementById('slot-evening').classList.remove('selected');
-            switchPage('result', 'cover');
-        }
-    </script>
+  function readState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return blankState();
+      const saved = JSON.parse(raw);
+      if (saved.version !== VERSION || !Array.isArray(saved.answers) || saved.answers.length !== 20 || !saved.answers.every(a => a === null || Number.isInteger(a) && a >= 0 && a <= 4)) return blankState();
+      const firstEmpty = saved.answers.indexOf(null);
+      const ceiling = firstEmpty < 0 ? 19 : firstEmpty;
+      return { version: VERSION, answers: saved.answers, index: Number.isInteger(saved.index) ? Math.max(0, Math.min(ceiling, saved.index)) : 0, completedAt: typeof saved.completedAt === 'string' && Number.isFinite(Date.parse(saved.completedAt)) ? saved.completedAt : null };
+    } catch (_) { storageAvailable = false; return blankState(); }
+  }
+  function answeredCount() { return state.answers.filter(a => a !== null).length; }
+  function completed() { return answeredCount() === QUESTIONS.length; }
+  function persist() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); storageAvailable = true; }
+    catch (_) { storageAvailable = false; }
+    $('#save-status').textContent = storageAvailable ? '进度自动保存在本机' : '当前浏览器无法保存，离开后进度会丢失';
+  }
+  function profileFrom(answers) {
+    if (!Array.isArray(answers) || answers.length !== 20 || !answers.every(a => Number.isInteger(a) && a >= 0 && a <= 4)) throw new Error('请完成全部 20 道题后生成报告');
+    return DIMENSIONS.map((_, i) => answers.slice(i * 4, i * 4 + 4).reduce((sum, value) => sum + value * 25, 0) / 4);
+  }
+  function rankCities(profile) {
+    if (!Array.isArray(profile) || profile.length !== 5 || !profile.every(v => Number.isFinite(v) && v >= 0 && v <= 100)) throw new Error('无效的偏好画像');
+    return CITIES.map(city => ({ city, similarity: 100 - Math.sqrt(profile.reduce((sum, value, i) => sum + (value - city.vector[i]) ** 2, 0) / 5) })).sort((a, b) => b.similarity - a.similarity || (a.city.id < b.city.id ? -1 : a.city.id > b.city.id ? 1 : 0));
+  }
+  const formatScore = n => n.toFixed(1);
+  const formatDimension = n => Number(n.toFixed(2)).toString();
+  function toast(message) { clearTimeout(toastTimer); $('#toast').textContent = message; $('#toast').classList.add('visible'); toastTimer = setTimeout(() => $('#toast').classList.remove('visible'), 3000); }
+  function navigate(view) {
+    const hash = { home: '#home', quiz: '#test', result: '#report', atlas: '#cities' }[view];
+    if (location.hash === hash) route(); else location.hash = hash;
+  }
+  function route() {
+    const hashes = { '#test': 'quiz', '#report': 'result', '#cities': 'atlas' };
+    let view = hashes[location.hash] || 'home';
+    if (view === 'result' && !completed()) { location.replace('#test'); return; }
+    activeView = view;
+    $('.nav-start').href = completed() ? '#report' : '#test';
+    $('.nav-start').innerHTML = completed() ? '我的报告 <span>→</span>' : '开始探索 <span>→</span>';
+    $$('.view').forEach(v => { v.hidden = v.id !== ({ home: 'home-view', quiz: 'quiz-view', result: 'result-view', atlas: 'atlas-view' }[view]); });
+    $('#nav-cities').setAttribute('aria-current', view === 'atlas' ? 'page' : 'false');
+    if (view === 'home') updateHome();
+    if (view === 'quiz') renderQuestion(false);
+    if (view === 'result') renderResult();
+    if (view === 'atlas') renderAtlas();
+    document.title = `栖城 City Atlas · ${{ home: '找到向往的城市生活', quiz: '我的生活偏好', result: '我的城市探索报告', atlas: '城市图鉴' }[view]}`;
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    if (view !== 'home') $('#main').focus({ preventScroll: true });
+  }
+  function updateHome() {
+    const count = answeredCount();
+    $('#start-button').innerHTML = completed() ? '查看我的城市报告 <span>↗</span>' : count ? `继续我的探索 · ${count}/20 <span>↗</span>` : '开启我的城市探索 <span>↗</span>';
+    $('#resume-hint').textContent = !storageAvailable ? '当前浏览器无法保存进度，请在本次访问中完成测试' : count ? '进度已保存在这台设备 · 随时回来继续' : '约 3–5 分钟 · 无需登录 · 答案仅保存在本机';
+    $('#clear-home-record').hidden = count === 0;
+    $('#home-city-grid').innerHTML = ['shanghai', 'hangzhou', 'xiamen', 'chengdu'].map(id => cityTile(CITIES.find(c => c.id === id))).join('');
+  }
+  function chapterHTML() {
+    return DIMENSIONS.map((d, i) => {
+      const count = state.answers.slice(i * 4, i * 4 + 4).filter(a => a !== null).length;
+      const current = Math.floor(state.index / 4) === i;
+      return `<li class="${current ? 'current' : count === 4 ? 'complete' : ''}" ${current ? 'aria-current="step"' : ''}><span>${count === 4 ? '✓' : String(i + 1).padStart(2, '0')}</span>${d.chapter}<small>${count} / 4</small></li>`;
+    }).join('');
+  }
+  function renderQuestion(focus = true) {
+    const q = QUESTIONS[state.index];
+    const dimension = DIMENSIONS[q.dimension];
+    $('#chapter-list').innerHTML = chapterHTML();
+    $('#chapter-eyebrow').textContent = `0${q.dimension + 1} / ${dimension.en}`;
+    $('#question-count').textContent = `${String(state.index + 1).padStart(2, '0')} / 20`;
+    $('#quiz-progress').style.width = `${answeredCount() * 5}%`;
+    $('.progress-track').setAttribute('aria-valuenow', answeredCount());
+    $('#question-scene').textContent = `${dimension.name} · ${q.scene}`;
+    $('#question-title').textContent = q.title;
+    $('#question-subtitle').textContent = q.hint;
+    $('#answer-options').innerHTML = '<legend class="sr-only">请选择符合程度</legend>' + LABELS.map((label, i) => `<label class="answer-row"><input type="radio" name="answer" value="${i}" ${state.answers[state.index] === i ? 'checked' : ''}><span class="answer-number" aria-hidden="true">${i + 1}</span><span class="answer-label">${label}</span><span class="answer-detail">${DETAILS[i]}</span><span class="answer-radio" aria-hidden="true"></span></label>`).join('');
+    $('#previous-question').disabled = state.index === 0;
+    $('#next-question').disabled = state.answers[state.index] === null;
+    $('#next-question').innerHTML = state.index === 19 ? '生成我的报告 <span>↗</span>' : '下一题 <span>→</span>';
+    $('#save-status').textContent = storageAvailable ? '进度自动保存在本机' : '当前浏览器无法保存，离开后进度会丢失';
+    if (focus) { $('#question-title').focus({ preventScroll: true }); window.scrollTo({ top: 0, behavior: 'instant' }); }
+  }
+  function selectAnswer(value) {
+    state.answers[state.index] = value;
+    persist();
+    $('#next-question').disabled = false;
+    $('#quiz-progress').style.width = `${answeredCount() * 5}%`;
+    $('.progress-track').setAttribute('aria-valuenow', answeredCount());
+    $('#chapter-list').innerHTML = chapterHTML();
+  }
+  function nextQuestion() {
+    if (state.answers[state.index] === null) return;
+    if (state.index < 19) { state.index++; persist(); renderQuestion(); }
+    else {
+      if (!completed()) { state.index = state.answers.indexOf(null); persist(); renderQuestion(); return; }
+      state.completedAt = new Date().toISOString(); persist(); navigate('result');
+    }
+  }
+  function previousQuestion() { if (state.index > 0) { state.index--; persist(); renderQuestion(); } }
+  function tileIcon(type) {
+    const paths = [
+      'M8 54V22h15v32M27 54V7h16v47M47 54V29h14v25M12 29h7m-7 8h7m12-22h8m-8 9h8m-8 9h8m-8 9h8m12-6h6',
+      'M2 53 23 17l15 23L51 7l23 46M13 53l17-29M43 53l12-35M7 58h65',
+      'M7 52V27h60v25M2 26l35-18 35 18M16 35v17m14-17v17m14-17v17m14-17v17M3 57h69M7 27h60',
+      'M2 46q9-9 18 0t18 0t18 0t18 0M2 56q9-9 18 0t18 0t18 0t18 0M43 8v28h20ZM43 17 29 36h14M7 23h12m-6-6v12',
+      'M9 35h43v12q0 10-10 10H19Q9 57 9 47ZM52 37h8q12 0 9 11-2 6-17 6M20 25q-6-6 0-12m12 12q-6-6 0-12m12 12q-6-6 0-12M3 60h58'
+    ];
+    return `<svg class="tile-lines" viewBox="0 0 76 66" aria-hidden="true"><path d="${paths[type]}" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  }
+  function cityTile(city) {
+    return `<button class="city-tile" data-city="${city.id}" aria-label="了解${city.name}，${TYPES[city.type]}"><div class="city-tile-top"><span class="city-code">${city.en}</span><span class="tile-arrow" aria-hidden="true">↗</span></div>${tileIcon(city.type)}<h3>${city.name}</h3><p>${city.tags.slice(0, 2).join(' · ')}</p><span class="city-type">${TYPES[city.type]} <span aria-hidden="true">/</span> ${city.province}</span></button>`;
+  }
+  function renderAtlas() {
+    $('#city-filters').innerHTML = ['全部城市', ...TYPES].map((label, i) => `<button class="filter-button" data-filter="${i - 1}" aria-pressed="${activeFilter === i - 1}">${label}</button>`).join('');
+    filterCities();
+  }
+  function filterCities() {
+    const query = $('#city-search').value.trim().toLowerCase();
+    const visible = CITIES.filter(c => (activeFilter === -1 || c.type === activeFilter) && [c.name, c.province, c.en].some(text => text.toLowerCase().includes(query)));
+    $('#city-count').textContent = `共 ${visible.length} 座城市 · 点击查看生活提案与演示画像`;
+    $('#atlas-grid').innerHTML = visible.length ? visible.map(cityTile).join('') : '<div class="empty-state">暂时没有找到这座城市。试试其他关键词或切换到“全部城市”。</div>';
+  }
+  function openCity(id) {
+    const city = CITIES.find(c => c.id === id);
+    if (!city) return;
+    $('#city-dialog-content').innerHTML = `<div class="city-dialog-head"><h2 id="city-dialog-title">${city.name}</h2><span>${city.en}</span></div><span class="pill-light">${city.province} / ${TYPES[city.type]}</span><p class="city-dialog-slogan">${city.slogan}</p><p class="city-dialog-description">${city.description}</p><div class="city-dimensions">${DIMENSIONS.map((d, i) => `<div class="city-dimension"><span>${d.name}</span><span class="mini-track"><span style="width:${city.vector[i]}%"></span></span><span>${city.vector[i]}</span></div>`).join('')}</div><p class="city-profile-note">以上分值为本项目主观设定的演示画像，不是城市统计指标。</p><div class="tradeoff"><strong>值得进一步了解</strong><br>${city.tradeoff}</div><button class="button primary full-width" data-city-start>${completed() ? '查看我的城市报告' : '探索与我的契合之处'} <span>→</span></button>`;
+    $('#city-dialog').showModal();
+  }
+  function radarSVG(profile, city) {
+    const cx = 175, cy = 143, r = 99;
+    const point = (i, value, radius = r) => {
+      const angle = i * Math.PI * 2 / 5 - Math.PI / 2;
+      return [cx + Math.cos(angle) * radius * value / 100, cy + Math.sin(angle) * radius * value / 100];
+    };
+    const polygon = values => values.map((value, i) => point(i, value).map(v => v.toFixed(2)).join(',')).join(' ');
+    const rings = [25, 50, 75, 100].map(value => `<polygon points="${polygon(Array(5).fill(value))}" fill="none" stroke="#cbd4bf" stroke-width=".8"/>`).join('');
+    const spokes = DIMENSIONS.map((_, i) => { const p = point(i, 100); return `<path d="M${cx} ${cy}L${p.join(' ')}" stroke="#d1d9c7" stroke-width=".8"/>`; }).join('');
+    const labels = DIMENSIONS.map((d, i) => { const [x, y] = point(i, 100, 125); return `<text x="${x}" y="${y + 4}" text-anchor="middle" font-size="10" fill="#6f7c62">${d.name}</text>`; }).join('');
+    return `<svg class="radar" viewBox="0 0 350 283" role="img" aria-labelledby="radar-title radar-desc"><title id="radar-title">你的偏好与${city.name}演示画像对比</title><desc id="radar-desc">${DIMENSIONS.map((d, i) => `${d.name}：你${formatDimension(profile[i])}分，${city.name}${city.vector[i]}分`).join('；')}。下方同时提供数值表格。</desc>${rings}${spokes}<polygon points="${polygon(city.vector)}" fill="#ab8e5314" stroke="#a1804c" stroke-width="1.5" stroke-dasharray="4 3"/><polygon points="${polygon(profile)}" fill="#244c4323" stroke="#244c43" stroke-width="1.8"/>${profile.map((value, i) => { const [x, y] = point(i, value); return `<circle cx="${x}" cy="${y}" r="2.8" fill="#244c43"/>`; }).join('')}${labels}</svg>`;
+  }
+  function resultReasons(profile, city) {
+    const byGap = DIMENSIONS.map((dimension, i) => ({ dimension, i, gap: Math.abs(profile[i] - city.vector[i]) })).sort((a, b) => a.gap - b.gap || b.i - a.i);
+    return byGap.slice(0, 2).map((item, index) => {
+      const value = profile[item.i];
+      const inclination = value >= 62.5 ? item.dimension.high : value <= 37.5 ? item.dimension.low : '在这一维度上保持平衡，暂时没有明显的单向偏好';
+      return `<div class="reason-item"><span class="reason-number">0${index + 1}</span><div><h3>${item.dimension.name} · ${item.gap === 0 ? '画像数值一致' : '偏好较接近'}</h3><p>你的得分为 ${formatDimension(value)}，${city.name}的设定值为 ${city.vector[item.i]}。你${inclination.startsWith('在') ? inclination : '的选择显示：' + inclination}。</p></div></div>`;
+    }).join('');
+  }
+  function renderResult() {
+    const profile = profileFrom(state.answers);
+    const ranks = rankCities(profile);
+    const top = ranks[0], city = top.city;
+    const date = state.completedAt ? new Date(state.completedAt).toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }) : '本次探索';
+    $('#result-content').innerHTML = `<div class="report-heading"><div><span class="section-number">YOUR CITY EXPLORATION / PERSONAL REPORT</span><h1 id="report-title">你的理想日常，有了城市的轮廓。</h1><p>从 20 个生活场景出发，看看哪些城市画像与你更接近。</p></div><div class="report-date">CITY ATLAS<br>${date}<br>20 / 20 COMPLETED</div></div><div class="report-grid"><article class="destination-card"><div class="destination-meta"><span>01 / YOUR CLOSEST MATCH</span><span>${TYPES[city.type]}</span></div><h2 class="city-big">${city.name}</h2><p class="destination-english">${city.en} · ${city.province}</p><p class="destination-slogan">${city.slogan}</p><p class="destination-description">${city.description}</p><div class="tags">${city.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}</div><div class="score-row"><div><div class="score">${formatScore(top.similarity)}<small>%</small></div><div class="score-label">偏好相似度 / 模型内比较</div></div><p class="score-explain">根据五维偏好与演示城市画像的距离计算<br>不代表真实宜居概率</p></div></article><section class="radar-card" aria-labelledby="portrait-title"><div class="card-heading"><h2 id="portrait-title">你的五维生活画像</h2><span>0–100 / 各维度独立</span></div><div class="radar-wrap">${radarSVG(profile, city)}</div><div class="radar-legend"><span><i class="legend-line"></i>你的偏好</span><span><i class="legend-line city"></i>${city.name}演示画像</span></div><table class="dimension-table"><caption class="sr-only">五维偏好得分对比</caption><thead><tr><th scope="col">偏好维度</th><th scope="col">你的得分</th><th scope="col">城市设定</th></tr></thead><tbody>${DIMENSIONS.map((d, i) => `<tr><th scope="row">${d.name}</th><td class="user-score">${formatDimension(profile[i])}</td><td>${city.vector[i]}</td></tr>`).join('')}</tbody></table></section></div><div class="report-details"><section class="explanation-card"><div class="card-heading"><h2>为什么与你合拍？</h2><span>两个最接近的维度</span></div>${resultReasons(profile, city)}<div class="tradeoff"><strong>生活之前，值得再确认</strong><br>${city.tradeoff}</div><button class="text-link" data-city="${city.id}" style="margin-top:14px">查看${city.name}的完整画像 ↗</button></section><section class="alternatives-card"><div class="card-heading"><h2>也可以遇见这些城市</h2><span>02–03 / 其他可能</span></div>${ranks.slice(1, 3).map((item, i) => `<article class="alternative"><span class="rank">0${i + 2}</span><div><h3>${item.city.name}</h3><p>${item.city.tags.slice(0, 2).join(' · ')}</p></div><div class="alt-score">${formatScore(item.similarity)}<small>偏好相似度</small></div><button data-city="${item.city.id}" aria-label="查看${item.city.name}的城市画像">↗</button></article>`).join('')}<a href="#cities" class="text-link" style="margin-top:15px">继续翻阅 20 座城市图鉴 →</a></section></div><div class="report-actions"><button class="button primary" id="download-card">保存分享卡片 <span>↓</span></button><button class="button secondary" id="copy-result">复制分享文字 <span>↗</span></button><button class="button secondary" id="print-result">打印 / 保存 PDF <span>↗</span></button><button class="button secondary" id="edit-answers">返回修改答案 <span>↶</span></button><button class="text-link" id="reset-record">清除记录</button></div><p class="report-notice">这是一份生活偏好探索报告。城市画像为主观设定，不构成真实择城结论。<br><button data-method>查看完整评分方法与使用范围</button> · 你的逐题答案保存在本机</p><p class="print-only">评分方法：每维 4 题，按 0/25/50/75/100 分取均值；相似度 = 100 − 五维差值的均方根。城市分值为主观设定，非统计指标。本项目未进行量表信效度验证，结果仅用于兴趣探索与交互演示。</p>`;
+  }
+  function getShareText() {
+    const top = rankCities(profileFrom(state.answers))[0];
+    const url = /^https?:$/.test(location.protocol) && !['localhost', '127.0.0.1'].includes(location.hostname) ? location.origin + location.pathname : 'https://kznee.github.io/city_match_test.html';
+    return `栖城 CITY ATLAS｜我的城市探索\n\n最接近我生活偏好的城市画像：${top.city.name}\n偏好相似度：${formatScore(top.similarity)}%\n${top.city.slogan}\n\n20 个生活场景，探索你向往的城市日常。\n${url}\n\n城市画像为主观演示设定，结果仅供兴趣探索。`;
+  }
+  async function copyResult() {
+    const text = getShareText();
+    try { await navigator.clipboard.writeText(text); toast('分享文字已复制，可以粘贴给朋友或老师'); }
+    catch (_) { $('#share-text').value = text; $('#share-dialog').showModal(); $('#share-text').focus(); $('#share-text').select(); }
+  }
+  async function downloadCard() {
+    const profile = profileFrom(state.answers), { city, similarity } = rankCities(profile)[0];
+    const canvas = document.createElement('canvas'); canvas.width = 1000; canvas.height = 1320;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) { toast('当前浏览器暂时无法生成图片，请使用打印功能'); return; }
+    const sans = '"Microsoft YaHei", sans-serif', serif = '"Noto Serif SC", SimSun, serif';
+    ctx.fillStyle = '#f6f4ed'; ctx.fillRect(0, 0, 1000, 1320);
+    ctx.strokeStyle = '#c9d0bd'; ctx.strokeRect(35, 35, 930, 1250);
+    ctx.fillStyle = '#244c43'; ctx.font = `37px ${serif}`; ctx.fillText('栖城', 80, 108);
+    ctx.font = '15px Georgia'; ctx.fillText('CITY ATLAS / YOUR LIVING PORTRAIT', 198, 103);
+    ctx.fillStyle = '#244c43'; ctx.fillRect(65, 151, 870, 518);
+    ctx.fillStyle = '#c8d0b6'; ctx.font = `17px ${sans}`; ctx.fillText('我的城市探索 · 最接近的城市画像', 110, 204);
+    ctx.fillStyle = '#f2e8c8'; ctx.font = `100px ${serif}`; ctx.fillText(city.name, 108, 337);
+    ctx.font = '21px Georgia'; ctx.fillText(city.en, 112, 385);
+    ctx.font = `26px ${serif}`; ctx.fillText(city.slogan, 110, 455);
+    ctx.strokeStyle = '#a3b59666'; ctx.beginPath(); ctx.moveTo(110, 500); ctx.lineTo(890, 500); ctx.stroke();
+    ctx.font = '69px Georgia'; ctx.fillText(formatScore(similarity) + '%', 110, 594);
+    ctx.font = `17px ${sans}`; ctx.fillText('偏好相似度 / 模型内比较', 400, 571);
+    ctx.fillStyle = '#becab0'; ctx.font = `15px ${sans}`; ctx.fillText('并非真实宜居概率', 400, 603);
+    ctx.fillStyle = '#244c43'; ctx.font = `27px ${serif}`; ctx.fillText('我的五维生活画像', 90, 744);
+    DIMENSIONS.forEach((d, i) => {
+      const y = 804 + i * 65;
+      ctx.fillStyle = '#64765b'; ctx.font = `21px ${sans}`; ctx.fillText(d.name, 92, y + 7);
+      ctx.fillStyle = '#dfe5d4'; ctx.fillRect(253, y - 8, 541, 10);
+      ctx.fillStyle = '#6b8561'; ctx.fillRect(253, y - 8, 541 * profile[i] / 100, 10);
+      ctx.fillStyle = '#244c43'; ctx.textAlign = 'right'; ctx.font = '23px Georgia'; ctx.fillText(formatDimension(profile[i]), 900, y + 6); ctx.textAlign = 'left';
+    });
+    ctx.fillStyle = '#7d876e'; ctx.font = `17px ${sans}`; ctx.fillText('理想的城市，藏在你喜欢的日常里。', 92, 1170);
+    ctx.font = `14px ${sans}`; ctx.fillText('城市画像为主观演示设定 · 结果仅供兴趣探索 · 不包含逐题答案', 92, 1210);
+    ctx.fillStyle = '#244c43'; ctx.font = '16px Georgia'; ctx.fillText('kznee.github.io/city_match_test.html', 92, 1250);
+    try {
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+      if (!blob) throw new Error('image');
+      const url = URL.createObjectURL(blob), link = document.createElement('a'); link.href = url; link.download = `栖城_我的城市探索_${city.name}.png`; link.click(); setTimeout(() => URL.revokeObjectURL(url), 5000); toast('分享卡片已生成，请查看浏览器下载');
+    } catch (_) { toast('图片生成失败，可使用打印功能保存报告'); }
+  }
+  document.addEventListener('click', event => {
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target) return;
+    const method = target.closest('[data-method]'); if (method) { $('#method-dialog').showModal(); return; }
+    const close = target.closest('[data-close]'); if (close) { close.closest('dialog').close(); return; }
+    const city = target.closest('[data-city]'); if (city) { openCity(city.dataset.city); return; }
+    const filter = target.closest('[data-filter]'); if (filter) { activeFilter = Number(filter.dataset.filter); renderAtlas(); return; }
+    const cityStart = target.closest('[data-city-start]'); if (cityStart) { $('#city-dialog').close(); navigate(completed() ? 'result' : 'quiz'); return; }
+    const id = target.closest('button')?.id;
+    if (id === 'start-button') navigate(completed() ? 'result' : 'quiz');
+    if (id === 'leave-quiz') navigate('home');
+    if (id === 'previous-question') previousQuestion();
+    if (id === 'next-question') nextQuestion();
+    if (id === 'download-card') downloadCard();
+    if (id === 'copy-result') copyResult();
+    if (id === 'print-result') window.print();
+    if (id === 'edit-answers') { state.index = 0; persist(); navigate('quiz'); }
+    if (id === 'reset-record' || id === 'clear-home-record') $('#reset-dialog').showModal();
+    if (id === 'confirm-reset') { state = blankState(); try { localStorage.removeItem(STORAGE_KEY); } catch (_) {} $('#reset-dialog').close(); navigate('quiz'); toast('本机记录已清除，开启一段新的探索'); }
+  });
+  $('#answer-options').addEventListener('change', event => { if (event.target.matches('input[name=answer]')) selectAnswer(Number(event.target.value)); });
+  $('#city-search').addEventListener('input', filterCities);
+  document.addEventListener('keydown', event => {
+    if (activeView !== 'quiz' || $$('dialog[open]').length || event.ctrlKey || event.metaKey || event.altKey) return;
+    if (/^[1-5]$/.test(event.key)) { event.preventDefault(); const radio = $(`#answer-options input[value="${Number(event.key) - 1}"]`); radio.checked = true; radio.focus({ preventScroll: true }); selectAnswer(Number(event.key) - 1); }
+    if (event.key === 'Enter' && !event.target.closest('button,a') && state.answers[state.index] !== null) { event.preventDefault(); nextQuestion(); }
+  });
+  $$('dialog').forEach(dialog => dialog.addEventListener('click', event => {
+    if (event.target !== dialog) return;
+    const rect = dialog.getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) dialog.close();
+  }));
+  window.addEventListener('hashchange', route);
+  window.CityAtlas = Object.freeze({ version: VERSION, dimensions: DIMENSIONS, questions: QUESTIONS, cities: CITIES, profileFrom, rankCities, getState: () => JSON.parse(JSON.stringify(state)) });
+  route();
+})();
+</script>
 </body>
 </html>
